@@ -26,9 +26,9 @@
     "es6-promisify": "^5.0.0",
     "google-auth-library": "^0.12.0",
     "googleapis": "^23.0.0",
+    "inquirer": "^4.0.1",
     "nodegit": "^0.20.3",
     "opn": "^5.1.0",
-    "requirer": "^0.0.4",
     "yargs": "^10.0.3"
   }
 }

@@ -3,8 +3,8 @@ const path = require('path');
 const git = require('./git');
 
 const { argv } = yargs
-  .usage('$0 <path>', 'starts branch cleanup for the given repository', yargs => {
-    yargs.positional('path', {
+  .usage('$0 <path>', 'starts branch cleanup for the given repository', y => {
+    y.positional('path', {
       describe: 'the path to the repository to analyse',
       type: 'string',
     });

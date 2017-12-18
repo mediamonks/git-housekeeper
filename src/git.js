@@ -1,6 +1,6 @@
 const inquirer = require('inquirer');
 const os = require('os');
-const { Remote, Repository, Cred, Reference, Revwalk } = require('nodegit');
+const { Remote, Repository, Cred } = require('nodegit');
 
 let repository;
 let remote;
@@ -35,7 +35,7 @@ async function attemptFetch(authMethod) {
     gitOpts = {
       fetchOpts: {
         callbacks: {
-          credentials: function() {
+          credentials: function credentials() {
             return Cred.userpassPlaintextNew(username, password);
           },
         },
@@ -47,12 +47,12 @@ async function attemptFetch(authMethod) {
         callbacks: {
           ...(os.platform() === 'darwin'
             ? {
-                certificateCheck: function() {
+                certificateCheck: function certificateCheck() {
                   return 1;
                 },
               }
             : {}),
-          credentials: function(url, userName) {
+          credentials: function credentials(url, userName) {
             return Cred.sshKeyFromAgent(userName);
           },
         },
@@ -72,8 +72,9 @@ async function attemptFetch(authMethod) {
         console.log('For windows, you can use pageant as an ssh-agent. Download it from:');
         console.log('https://www.chiark.greenend.org.uk/~sgtatham/putty/latest.html');
         console.log(
-          'Run pageant and with your private key. If your key is not yet in ppk format, you can convert it using puttygen (available on the same page)\n',
+          'Run pageant and with your private key. If your key is not yet in ppk format, ',
         );
+        console.log('you can convert it using puttygen (available on the same page)');
       }
     } else {
       console.log('\nMake sure you have provided the correct username and password.\n');
@@ -83,7 +84,7 @@ async function attemptFetch(authMethod) {
   return true;
 }
 
-module.exports.fetchAll = async function() {
+module.exports.fetchAll = async function fetchAll() {
   if (!repository || !remote) {
     throw new ReferenceError('Please open repository first');
   }
@@ -94,6 +95,7 @@ module.exports.fetchAll = async function() {
   let authenticated = false;
 
   while (!authenticated) {
+    /* eslint-disable no-await-in-loop */
     authenticated = await attemptFetch(authMethod);
 
     if (!authenticated) {
@@ -120,12 +122,13 @@ module.exports.fetchAll = async function() {
         process.exit();
       }
     }
+    /* eslint-enable no-await-in-loop */
   }
 
   console.log('Fetch successful');
 };
 
-module.exports.openRepository = async function(repositoryPath) {
+module.exports.openRepository = async function openRepository(repositoryPath) {
   try {
     repository = await Repository.open(repositoryPath);
   } catch (e) {
