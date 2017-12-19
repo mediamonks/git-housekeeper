@@ -45,18 +45,17 @@ async function attemptFetch(authMethod) {
     gitOpts = {
       fetchOpts: {
         callbacks: {
-          ...(os.platform() === 'darwin'
-            ? {
-                certificateCheck: function certificateCheck() {
-                  return 1;
-                },
-              }
-            : {}),
           credentials: function credentials(url, userName) {
             return Cred.sshKeyFromAgent(userName);
           },
         },
       },
+    };
+  }
+  if (os.platform() === 'darwin') {
+    // fix OSX bug. see nodegit docs
+    gitOpts.fetchOpts.callbacks.certificateCheck = function certificateCheck() {
+      return 1;
     };
   }
 
@@ -84,7 +83,7 @@ async function attemptFetch(authMethod) {
   return true;
 }
 
-module.exports.fetchAll = async function fetchAll() {
+module.exports.fetchRemote = async function fetchRemote() {
   if (!repository || !remote) {
     throw new ReferenceError('Please open repository first');
   }
@@ -125,7 +124,7 @@ module.exports.fetchAll = async function fetchAll() {
     /* eslint-enable no-await-in-loop */
   }
 
-  console.log('Fetch successful');
+  console.log('Successfully fetched remote');
 };
 
 module.exports.openRepository = async function openRepository(repositoryPath) {

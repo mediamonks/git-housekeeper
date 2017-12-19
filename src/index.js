@@ -23,6 +23,5 @@ const { argv } = yargs
   console.log('\n\n Welcome to git housekeeper! \n\n');
   const repositoryPath = path.resolve(argv.path);
   await git.openRepository(repositoryPath);
-
-  await git.fetchAll();
+  await git.fetchRemote();
 })();
