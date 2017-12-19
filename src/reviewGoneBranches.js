@@ -18,7 +18,7 @@ async function reviewGoneBranches(argv, goneBranches) {
     {
       name: 'shouldDelete',
       type: 'confirm',
-      message: `would you like to delete these local branches? ${argv.d ? '(dry run)' : ''}`,
+      message: `[review gone] would you like to delete these local branches? ${argv.d ? '(dry run)' : ''}`,
     },
   ]);
 

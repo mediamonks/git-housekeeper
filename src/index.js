@@ -3,6 +3,7 @@ import path from 'path';
 import inquirer from 'inquirer';
 import { openRepository, fetchRemote, getBranches } from './git';
 import reviewGoneBranches from './reviewGoneBranches';
+import reviewRemoteBranches from './reviewRemoteBranches';
 
 const { argv } = yargs
   .usage('$0 <path>', 'starts branch cleanup for the given repository', y => {
@@ -25,18 +26,14 @@ let branches;
 
 async function mainMenu() {
   const goneBranches = branches.locals.filter(branch => branch.gone);
-  const remoteBranches = branches.remotes.filter(
-    branch =>
-      branch.onTargetRemote &&
-      !['master', 'develop'].some(branchName => branch.name.endsWith(branchName)),
-  );
+  const remoteBranches = branches.remotes.filter(branch => branch.onTargetRemote);
 
   const { action } = await inquirer.prompt([
     {
       type: 'list',
       choices: [
         {
-          value: 2,
+          value: () => reviewRemoteBranches(argv, remoteBranches),
           name: `review branches on remote (${remoteBranches.length})`,
         },
         {
