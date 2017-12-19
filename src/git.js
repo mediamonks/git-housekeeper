@@ -1,6 +1,6 @@
-const inquirer = require('inquirer');
-const os = require('os');
-const { Remote, Repository, Cred } = require('nodegit');
+import inquirer from 'inquirer';
+import os from 'os';
+import { Repository, Remote, Cred } from 'nodegit';
 
 let repository;
 let remote;
@@ -13,9 +13,7 @@ const authMethods = {
   [AUTH_METHOD_SSH]: 'ssh with agent',
 };
 
-module.exports = {};
-
-async function attemptFetch(authMethod) {
+export async function attemptFetch(authMethod) {
   console.log(`Attempting fetch using ${authMethods[authMethod]}...\n`);
 
   if (authMethod === AUTH_METHOD_HTTPS) {
@@ -83,7 +81,7 @@ async function attemptFetch(authMethod) {
   return true;
 }
 
-module.exports.fetchRemote = async function fetchRemote() {
+export async function fetchRemote() {
   if (!repository || !remote) {
     throw new ReferenceError('Please open repository first');
   }
@@ -102,10 +100,16 @@ module.exports.fetchRemote = async function fetchRemote() {
         {
           type: 'list',
           choices: [
-            ...Object.keys(authMethods).map(method => ({
-              value: method,
-              name: `yes, authenticate using ${authMethods[method]}`,
-            })),
+            {
+              value: authMethod,
+              name: `yes, try again with the same method (${authMethods[authMethod]})`,
+            },
+            ...Object.keys(authMethods)
+              .filter(method => method !== authMethod) // eslint-disable-line no-loop-func
+              .map(method => ({
+                value: method,
+                name: `yes, authenticate using ${authMethods[method]}`,
+              })),
             {
               name: 'no, exit',
               value: null,
@@ -125,9 +129,9 @@ module.exports.fetchRemote = async function fetchRemote() {
   }
 
   console.log('Successfully fetched remote');
-};
+}
 
-module.exports.openRepository = async function openRepository(repositoryPath) {
+export async function openRepository(repositoryPath) {
   try {
     repository = await Repository.open(repositoryPath);
   } catch (e) {
@@ -158,4 +162,4 @@ module.exports.openRepository = async function openRepository(repositoryPath) {
     ({ remoteName } = answers);
   }
   remote = await Remote.lookup(repository, remoteName);
-};
+}

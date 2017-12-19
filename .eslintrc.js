@@ -10,10 +10,6 @@ module.exports = {
   extends: ['airbnb-base', 'prettier'],
   plugins: ['import', 'prettier'],
   rules: {
-    'import/extensions': [
-      'error',
-      'always'
-    ],
     'max-len': ['error', 100],
     'prettier/prettier': [
       'error',

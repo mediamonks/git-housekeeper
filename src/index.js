@@ -1,6 +1,6 @@
-const yargs = require('yargs');
-const path = require('path');
-const git = require('./git');
+import yargs from 'yargs';
+import path from 'path';
+import { openRepository, fetchRemote } from './git';
 
 const { argv } = yargs
   .usage('$0 <path>', 'starts branch cleanup for the given repository', y => {
@@ -19,9 +19,14 @@ const { argv } = yargs
   })
   .help();
 
+async function mainMenu() {
+  
+}
+
 (async function main() {
   console.log('\n\n Welcome to git housekeeper! \n\n');
   const repositoryPath = path.resolve(argv.path);
-  await git.openRepository(repositoryPath);
-  await git.fetchRemote();
+  await openRepository(repositoryPath);
+  await fetchRemote();
+  await mainMenu();
 })();
