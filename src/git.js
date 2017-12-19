@@ -1,6 +1,6 @@
 import inquirer from 'inquirer';
 import os from 'os';
-import { Repository, Remote, Cred } from 'nodegit';
+import { Repository, Remote, Cred, Reference } from 'nodegit';
 
 let repository;
 let remote;
@@ -149,6 +149,10 @@ export async function openRepository(repositoryPath) {
 
   let remoteName = remotes[0];
 
+  if (!remotes.length) {
+    throw new Error('No remotes seems to be configured on the given repository');
+  }
+
   if (remotes.length > 1) {
     const answers = await inquirer.prompt([
       {
@@ -162,4 +166,52 @@ export async function openRepository(repositoryPath) {
     ({ remoteName } = answers);
   }
   remote = await Remote.lookup(repository, remoteName);
+}
+
+export async function getBranches() {
+  const refs = await repository.getReferences(Reference.TYPE.OID);
+  const config = await repository.config();
+
+  const remotes = refs.filter(ref => ref.isRemote());
+  const locals = refs.filter(ref => ref.isBranch());
+
+  return {
+    refs,
+    remotes: remotes.map(ref => ({
+      ref,
+      shorthand: ref.shorthand(),
+      name: ref.name(),
+      onTargetRemote: ref.name().startsWith(`refs/remotes/${remote.name()}/`),
+    })),
+    locals: await Promise.all(
+      locals.map(async ref => {
+        let remoteName = null;
+        let upstreamName = null;
+
+        try {
+          const confBuff = await config.getStringBuf(`branch.${ref.shorthand()}.remote`);
+          remoteName = confBuff.toString();
+        } catch (e) {
+          // ignore
+        }
+
+        try {
+          const confBuff = await config.getStringBuf(`branch.${ref.shorthand()}.merge`);
+          const merge = confBuff.toString();
+          upstreamName = merge.replace('refs/heads/', '');
+        } catch (e) {
+          // ignore
+        }
+
+        return {
+          ref,
+          remoteName,
+          upstreamName,
+          gone:
+            upstreamName &&
+            !remotes.some(remoteRef => remoteRef.name().endsWith(`${remoteName}/${upstreamName}`)),
+        };
+      }),
+    ),
+  };
 }

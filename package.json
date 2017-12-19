@@ -27,6 +27,7 @@
     "google-auth-library": "^0.12.0",
     "googleapis": "^23.0.0",
     "inquirer": "^4.0.1",
+    "lodash": "^4.17.4",
     "nodegit": "^0.20.3",
     "opn": "^5.1.0",
     "yargs": "^10.0.3"
