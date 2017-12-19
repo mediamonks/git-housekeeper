@@ -10,7 +10,6 @@ module.exports = {
   extends: ['airbnb-base', 'prettier'],
   plugins: ['import', 'prettier'],
   rules: {
-    'max-len': ['error', 100],
     'prettier/prettier': [
       'error',
       { singleQuote: true, trailingComma: 'all', printWidth: 100, tabWidth: 2 }

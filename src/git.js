@@ -3,7 +3,7 @@ import os from 'os';
 import { Repository, Remote, Cred, Reference } from 'nodegit';
 
 let repository;
-let remote;
+let targetRemote;
 let gitOpts = null;
 
 const AUTH_METHOD_HTTPS = 'https';
@@ -58,7 +58,7 @@ export async function attemptFetch(authMethod) {
   }
 
   try {
-    await repository.fetch(remote, { prune: 1, ...gitOpts.fetchOpts });
+    await repository.fetch(targetRemote, { prune: 1, ...gitOpts.fetchOpts });
   } catch (e) {
     console.log(`\nUnable to run fetch command. Message: \n > ${e}`);
     if (authMethod === AUTH_METHOD_SSH) {
@@ -82,11 +82,11 @@ export async function attemptFetch(authMethod) {
 }
 
 export async function fetchRemote() {
-  if (!repository || !remote) {
+  if (!repository || !targetRemote) {
     throw new ReferenceError('Please open repository first');
   }
 
-  const url = remote.url();
+  const url = targetRemote.url();
   let authMethod = url.startsWith('http') ? AUTH_METHOD_HTTPS : AUTH_METHOD_SSH;
 
   let authenticated = false;
@@ -165,7 +165,7 @@ export async function openRepository(repositoryPath) {
 
     ({ remoteName } = answers);
   }
-  remote = await Remote.lookup(repository, remoteName);
+  targetRemote = await Remote.lookup(repository, remoteName);
 }
 
 export async function getBranches() {
@@ -181,7 +181,7 @@ export async function getBranches() {
       ref,
       shorthand: ref.shorthand(),
       name: ref.name(),
-      onTargetRemote: ref.name().startsWith(`refs/remotes/${remote.name()}/`),
+      onTargetRemote: ref.name().startsWith(`refs/remotes/${targetRemote.name()}/`),
     })),
     locals: await Promise.all(
       locals.map(async ref => {
@@ -226,4 +226,8 @@ export async function deleteBranch(branchRef, dryRun) {
     console.log(command);
     await branchRef.delete();
   }
+}
+
+export function getTargetRemote() {
+  return targetRemote;
 }
