@@ -207,6 +207,8 @@ export async function getBranches() {
           ref,
           remoteName,
           upstreamName,
+          name: ref.name(),
+          shorthand: ref.shorthand(),
           gone:
             upstreamName &&
             !remotes.some(remoteRef => remoteRef.name().endsWith(`${remoteName}/${upstreamName}`)),
@@ -214,4 +216,14 @@ export async function getBranches() {
       }),
     ),
   };
+}
+
+export async function deleteBranch(branchRef, dryRun) {
+  const command = `git branch -d ${branchRef.shorthand()}`;
+  if (dryRun) {
+    console.log(`[dry run] ${command}`);
+  } else {
+    console.log(command);
+    await branchRef.delete();
+  }
 }

@@ -2,6 +2,7 @@ import yargs from 'yargs';
 import path from 'path';
 import inquirer from 'inquirer';
 import { openRepository, fetchRemote, getBranches } from './git';
+import reviewGoneBranches from './reviewGoneBranches';
 
 const { argv } = yargs
   .usage('$0 <path>', 'starts branch cleanup for the given repository', y => {
@@ -39,7 +40,7 @@ async function mainMenu() {
           name: `review branches on remote (${remoteBranches.length})`,
         },
         {
-          value: 1,
+          value: () => reviewGoneBranches(argv, goneBranches),
           name: `review tracking branches gone on remote (${goneBranches.length})`,
         },
         {
@@ -53,17 +54,19 @@ async function mainMenu() {
   ]);
 
   if (action) {
-    await action();
-    await mainMenu();
+    const shouldContinue = await action();
+    if (shouldContinue) {
+      await mainMenu();
+    }
   }
 }
 
 (async function main() {
-  console.log('\n\n Welcome to git housekeeper! \n\n');
+  console.log('\n\nWelcome to git housekeeper! \n\n');
   const repositoryPath = path.resolve(argv.path);
   await openRepository(repositoryPath);
   await fetchRemote();
   branches = await getBranches();
   await mainMenu();
-  console.log('\n Bye! \n');
+  console.log('\nBye! \n');
 })();
