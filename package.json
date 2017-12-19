@@ -13,6 +13,7 @@
   "devDependencies": {
     "babel-cli": "^6.26.0",
     "babel-eslint": "^8.0.3",
+    "babel-plugin-syntax-async-generators": "^6.13.0",
     "babel-plugin-transform-object-rest-spread": "^6.26.0",
     "babel-preset-env": "^1.6.1",
     "eslint": "^4.13.1",
@@ -28,6 +29,7 @@
     "googleapis": "^23.0.0",
     "inquirer": "^4.0.1",
     "lodash": "^4.17.4",
+    "moment": "^2.20.1",
     "nodegit": "^0.20.3",
     "opn": "^5.1.0",
     "yargs": "^10.0.3"

@@ -1,7 +1,7 @@
 import inquirer from 'inquirer';
 import reviewRemoteInteractive from './reviewRemoteInteractive';
 import reviewGoogleSheets from './sheets/reviewRemoteGoogleSheets';
-import { getCommitsInBranch, getReferenceFromTargetRemote } from './git';
+import { getAllCommitsInBranch, getReferenceFromTargetRemote } from './git';
 import { DEFAULT_BASE_BRANCHES, INQUIRER_PAGE_SIZE } from './const';
 
 let baseBranch = null;
@@ -37,8 +37,8 @@ async function reviewRemoteBranches(argv, remoteBranches, noDefaultBase = false)
   if (!baseBranch) {
     await selectBaseBranch(remoteBranches);
   }
-  console.log(`Using "${baseBranch}" as base branch`);
-  const commitsInBase = await getCommitsInBranch(await getReferenceFromTargetRemote(baseBranch));
+  console.log(`Using "${baseBranch}" as base branch. Getting commits...`);
+  const commitsInBase = await getAllCommitsInBranch(await getReferenceFromTargetRemote(baseBranch));
 
   const { action } = await inquirer.prompt([
     {

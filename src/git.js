@@ -1,5 +1,6 @@
 import inquirer from 'inquirer';
 import os from 'os';
+import { flatten } from 'lodash';
 import { Repository, Remote, Cred, Reference } from 'nodegit';
 
 let repository;
@@ -228,7 +229,48 @@ export async function deleteBranch(branchRef, dryRun) {
   }
 }
 
-export async function getCommitsInBranch(branchRef) {
+export async function deleteRemoteBranch(branchName, dryRun) {
+  const command = `git push :refs/heads/${branchName}`;
+  if (dryRun) {
+    console.log(`[dry run] ${command}`);
+  } else {
+    console.log(command);
+    await targetRemote.push(`:refs/heads/${branchName}`, gitOpts.fetchOpts);
+  }
+}
+
+async function getCommitAncestors(commit, predicate, visited = []) {
+  const parents = await commit.getParents();
+
+  if (!predicate(commit)) {
+    return [];
+  }
+
+  return [
+    commit,
+    ...flatten(
+      await Promise.all(
+        parents.map(async parent => {
+          const parentSha = parent.sha();
+          if (!visited.includes(parentSha) && predicate(parent)) {
+            visited.push(parentSha);
+
+            return getCommitAncestors(parent, predicate, visited);
+          }
+          return [];
+        }),
+      ),
+    ),
+  ];
+}
+
+export async function getCommitsInBranch(branchRef, predicate = () => true) {
+  const headCommit = await repository.getReferenceCommit(branchRef);
+
+  return (await getCommitAncestors(headCommit, predicate)).sort((a, b) => b.timeMs() - a.timeMs());
+}
+
+export async function getAllCommitsInBranch(branchRef) {
   const headCommit = await repository.getReferenceCommit(branchRef);
   const history = headCommit.history();
 
