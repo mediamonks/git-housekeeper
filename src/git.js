@@ -179,7 +179,7 @@ export async function getBranches() {
     refs,
     remotes: remotes.map(ref => ({
       ref,
-      shorthand: ref.shorthand(),
+      shortName: ref.shorthand().replace(/^.+?\//, ''),
       name: ref.name(),
       onTargetRemote: ref.name().startsWith(`refs/remotes/${targetRemote.name()}/`),
     })),
@@ -208,7 +208,7 @@ export async function getBranches() {
           remoteName,
           upstreamName,
           name: ref.name(),
-          shorthand: ref.shorthand(),
+          shortName: ref.shorthand(),
           gone:
             upstreamName &&
             !remotes.some(remoteRef => remoteRef.name().endsWith(`${remoteName}/${upstreamName}`)),
@@ -228,6 +228,21 @@ export async function deleteBranch(branchRef, dryRun) {
   }
 }
 
+export async function getCommitsInBranch(branchRef) {
+  const headCommit = await repository.getReferenceCommit(branchRef);
+  const history = headCommit.history();
+
+  return new Promise((resolve, reject) => {
+    history.on('end', resolve);
+    history.on('error', reject);
+    history.start();
+  });
+}
+
 export function getTargetRemote() {
   return targetRemote;
+}
+
+export async function getReferenceFromTargetRemote(branchName) {
+  return repository.getReference(`refs/remotes/${targetRemote.name()}/${branchName}`);
 }

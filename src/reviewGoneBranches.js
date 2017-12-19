@@ -11,14 +11,16 @@ async function reviewGoneBranches(argv, goneBranches) {
   console.log(
     `The following branches have been setup to track a remote, but the upstream branch no longer exist on remote "${remoteName}":`,
   );
-  goneBranches.forEach(branch => console.log(` - ${branch.shorthand}`));
+  goneBranches.forEach(branch => console.log(` - ${branch.shortName}`));
   console.log('');
 
   const { shouldDelete } = await inquirer.prompt([
     {
       name: 'shouldDelete',
       type: 'confirm',
-      message: `[review gone] would you like to delete these local branches? ${argv.d ? '(dry run)' : ''}`,
+      message: `[review gone] would you like to delete these local branches? ${
+        argv.d ? '(dry run)' : ''
+      }`,
     },
   ]);
 

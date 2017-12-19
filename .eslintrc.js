@@ -15,6 +15,7 @@ module.exports = {
       { singleQuote: true, trailingComma: 'all', printWidth: 100, tabWidth: 2 }
     ],
     'no-underscore-dangle': 0,
+    'no-plusplus': 0,
     'no-console': 0,
     'linebreak-style': 0
   }

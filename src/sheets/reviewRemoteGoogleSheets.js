@@ -1,6 +1,6 @@
 
 
-async function reviewGoogleSheets(argv, remoteBranches, baseBranch) {
+async function reviewGoogleSheets(argv, remoteBranches, baseBranch, commitsInBase) {
   console.log(baseBranch);
 }
 
