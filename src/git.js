@@ -264,7 +264,7 @@ async function getCommitAncestors(commit, predicate, visited = []) {
   ];
 }
 
-export async function getCommitsInBranch(branchRef, predicate = () => true) {
+export async function getCommitsInBranchUntil(branchRef, predicate = () => true) {
   const headCommit = await repository.getReferenceCommit(branchRef);
 
   return (await getCommitAncestors(headCommit, predicate)).sort((a, b) => b.timeMs() - a.timeMs());

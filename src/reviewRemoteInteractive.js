@@ -1,7 +1,7 @@
 import moment from 'moment';
 import inquirer from 'inquirer';
 import { DEFAULT_BASE_BRANCHES, COMMITS_PAGE_SIZE } from './const';
-import { deleteRemoteBranch, getCommitsInBranch } from './git';
+import { deleteRemoteBranch, getCommitsInBranchUntil } from './git';
 
 const ACTION_EXIT = 0;
 const ACTION_SHOW_MORE = 1;
@@ -14,7 +14,6 @@ async function logCommitsAndPrompt(commits, page = 0) {
 
   commitsToLog.forEach(commit => {
     console.log(` - ${commit.author()} | ${moment(commit.timeMs()).fromNow()}`);
-    console.log(`   ${commit.sha()}`);
     console.log(`   ${commit.summary()}`);
   });
 
@@ -56,7 +55,7 @@ async function logCommitsAndPrompt(commits, page = 0) {
 
 async function reviewBranch(branch, baseBranchName, commitsInBase) {
   const shaInBase = commitsInBase.map(commit => commit.sha());
-  const branchCommits = await getCommitsInBranch(
+  const branchCommits = await getCommitsInBranchUntil(
     branch.ref,
     commit => !shaInBase.includes(commit.sha()),
   );
