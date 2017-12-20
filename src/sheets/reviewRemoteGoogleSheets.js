@@ -109,38 +109,42 @@ function generateBranchRows(branches, branchCommits) {
                   },
                 },
                 // last commit date
-                {
-                  userEnteredValue: {
-                    formulaValue: date ? `=DATE(${date})` : '',
-                  },
-                  userEnteredFormat: {
-                    wrapStrategy: 'CLIP',
-                    numberFormat: {
-                      type: 'DATE',
-                    },
-                    textFormat: {
-                      fontFamily: 'Roboto Mono',
-                      fontSize: 9,
-                    },
-                  },
-                },
+                date
+                  ? {
+                      userEnteredValue: {
+                        formulaValue: `=DATE(${date})`,
+                      },
+                      userEnteredFormat: {
+                        wrapStrategy: 'CLIP',
+                        numberFormat: {
+                          type: 'DATE',
+                        },
+                        textFormat: {
+                          fontFamily: 'Roboto Mono',
+                          fontSize: 9,
+                        },
+                      },
+                    }
+                  : generateStringValue(''),
                 // last commit time
-                {
-                  userEnteredValue: {
-                    formulaValue: time ? `=TIME(${time})` : '',
-                  },
-                  userEnteredFormat: {
-                    wrapStrategy: 'CLIP',
-                    numberFormat: {
-                      type: 'TIME',
-                      pattern: 'hh:mm',
-                    },
-                    textFormat: {
-                      fontFamily: 'Roboto Mono',
-                      fontSize: 9,
-                    },
-                  },
-                },
+                time
+                  ? {
+                      userEnteredValue: {
+                        formulaValue: `=TIME(${time})`,
+                      },
+                      userEnteredFormat: {
+                        wrapStrategy: 'CLIP',
+                        numberFormat: {
+                          type: 'TIME',
+                          pattern: 'hh:mm',
+                        },
+                        textFormat: {
+                          fontFamily: 'Roboto Mono',
+                          fontSize: 9,
+                        },
+                      },
+                    }
+                  : generateStringValue(''),
                 // action
                 {
                   dataValidation: {
