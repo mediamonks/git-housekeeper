@@ -1,9 +1,15 @@
 import opn from 'opn';
 import ProgressBar from 'progress';
-import { DEFAULT_BASE_BRANCHES, NUM_COMMITS_IN_SHEET, SHEET_COL_SIZE } from '../const';
+import moment from 'moment';
+import { flatten, groupBy, uniq } from 'lodash';
+import {
+  COLOR_BORDER_DARK, COLOR_BORDER_LIGHT, DEFAULT_BASE_BRANCHES, NUM_COMMITS_IN_SHEET,
+  SHEET_COL_SIZE,
+} from '../const';
 import { getCommitsInBranchUntil } from '../git';
 import { authenticate, createSheet } from './sheetsApi';
 import { generateHeadRow, generateTitleRows } from './sheetTitleHead';
+import { generateHiddenColumn, generateNumberValue, generateStringValue } from './sheetUtils';
 
 function processColSpan(rowDataWithSpan, sheetId = 0) {
   const rowData = [];
@@ -41,10 +47,168 @@ function processColSpan(rowDataWithSpan, sheetId = 0) {
   return { rowData, merges };
 }
 
+function generateBranchRows(branches, branchCommits) {
+  const branchesWithCommits = branches.map((branch, index) => ({
+    ...branch,
+    commits: branchCommits[index],
+  }));
+
+  const branchesByAuthor = groupBy(
+    branchesWithCommits,
+    branch => (branch.commits.length ? branch.commits[0].author().name() : 'none'),
+  );
+
+  return flatten(
+    Object.keys(branchesByAuthor)
+      .sort()
+      .map(author => {
+        const authorBranches = branchesByAuthor[author];
+
+        return [
+          ...authorBranches.map((branch, index) => {
+            const lastCommitTime = branch.commits.length
+              ? moment(branch.commits[0].timeMs())
+              : null;
+            const date = lastCommitTime ? lastCommitTime.format('YYYY,M,D') : '';
+            const time = lastCommitTime ? lastCommitTime.format('H,m,s') : '';
+
+            return {
+              values: [
+                // branch ref name
+                generateHiddenColumn(branch.name),
+                // last commit author
+                {
+                  ...generateStringValue(index ? '' : author),
+                  userEnteredFormat: {
+                    wrapStrategy: 'CLIP',
+                    textFormat: {
+                      bold: true,
+                    },
+                  },
+                },
+                // branch
+                {
+                  ...generateStringValue(branch.shortName),
+                  userEnteredFormat: {
+                    wrapStrategy: 'CLIP',
+                  },
+                },
+                // authors
+                {
+                  ...generateStringValue(
+                    uniq(branch.commits.map(c => c.author().name())).join(', '),
+                  ),
+                  userEnteredFormat: {
+                    wrapStrategy: 'CLIP',
+                  },
+                },
+                // last commit date
+                {
+                  userEnteredValue: {
+                    formulaValue: date ? `=DATE(${date})` : '',
+                  },
+                  userEnteredFormat: {
+                    wrapStrategy: 'CLIP',
+                    numberFormat: {
+                      type: 'DATE',
+                    },
+                    textFormat: {
+                      fontFamily: 'Roboto Mono',
+                      fontSize: 9,
+                    },
+                  },
+                },
+                // last commit time
+                {
+                  userEnteredValue: {
+                    formulaValue: time ? `=TIME(${time})` : '',
+                  },
+                  userEnteredFormat: {
+                    wrapStrategy: 'CLIP',
+                    numberFormat: {
+                      type: 'TIME',
+                      pattern: 'hh:mm',
+                    },
+                    textFormat: {
+                      fontFamily: 'Roboto Mono',
+                      fontSize: 9,
+                    },
+                  },
+                },
+                // action
+                {
+                  dataValidation: {
+                    condition: {
+                      type: 'ONE_OF_LIST',
+                      values: [
+                        { userEnteredValue: '' },
+                        { userEnteredValue: 'KEEP' },
+                        { userEnteredValue: 'DELETE' },
+                      ],
+                    },
+                    strict: true,
+                    showCustomUi: true,
+                  },
+                },
+                // behind
+                {
+                  ...generateNumberValue(2),
+                  userEnteredFormat: {
+                    borders: {
+                      left: {
+                        style: 'SOLID',
+                        color: COLOR_BORDER_DARK,
+                      },
+                    },
+                  },
+                },
+                // ahead
+                {
+                  ...generateNumberValue(branch.commits.length),
+                  userEnteredFormat: {
+                    horizontalAlignment: 'LEFT',
+                    borders: {
+                      right: {
+                        style: 'SOLID',
+                        color: COLOR_BORDER_LIGHT,
+                      },
+                    },
+                  },
+                },
+                // commits
+                ...branch.commits.slice(0, NUM_COMMITS_IN_SHEET).map(commit => ({
+                  userEnteredValue: {
+                    stringValue: `${commit.sha().substring(0, 6)} ${commit.summary()}`,
+                  },
+                  userEnteredFormat: {
+                    wrapStrategy: 'CLIP',
+                    padding: {
+                      top: 0,
+                      right: 0,
+                      bottom: 0,
+                      left: 12,
+                    },
+                    textFormat: {
+                      fontFamily: 'Roboto Mono',
+                      fontSize: 9,
+                    },
+                  },
+                })),
+              ],
+            };
+          }),
+          // spacer row
+          { values: [] },
+        ];
+      }),
+  );
+}
+
 function generateSheetData(branches, branchCommits, baseBranch) {
   const { merges, rowData } = processColSpan([
     ...generateTitleRows(baseBranch),
     generateHeadRow(baseBranch),
+    ...generateBranchRows(branches, branchCommits),
   ]);
   const { HIDDEN, S, M, L } = SHEET_COL_SIZE;
 
@@ -69,8 +233,10 @@ function generateSheetData(branches, branchCommits, baseBranch) {
         { pixelSize: L },
         // authors
         { pixelSize: L },
+        // last commit date
+        { pixelSize: S + 20 },
         // last commit time
-        { pixelSize: M },
+        { pixelSize: S - 20 },
         // action
         { pixelSize: M },
         // behind

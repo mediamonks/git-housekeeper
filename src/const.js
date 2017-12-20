@@ -31,9 +31,9 @@ export const COLOR_BORDER_DARK = {
   alpha: 1,
 };
 export const COLOR_BORDER_LIGHT = {
-  red: 0.8,
-  green: 0.8,
-  blue: 0.8,
+  red: 0.6,
+  green: 0.6,
+  blue: 0.6,
   alpha: 1,
 };
 export const SHEET_COL_SIZE = {

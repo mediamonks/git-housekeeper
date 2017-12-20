@@ -4,6 +4,10 @@ export const generateStringValue = stringValue => ({
   userEnteredValue: { stringValue },
 });
 
+export const generateNumberValue = numberValue => ({
+  userEnteredValue: { numberValue },
+});
+
 export const generatePadding = ({ top = 0, right = 0, bottom = 0, left = 0 } = {}) => ({
   padding: { top, right, bottom, left },
 });
