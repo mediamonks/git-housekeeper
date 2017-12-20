@@ -12,7 +12,7 @@ import {
   NUM_COMMITS_IN_SHEET,
   SHEET_COL_SIZE,
 } from '../const';
-import { getCommitsInBranchUntil } from '../git';
+import { getBranchAheadBehind } from '../git';
 import { authenticate, createSheet } from './sheetsApi';
 import { generateHeadRow, generateTitleRows } from './sheetTitleHead';
 import { generateHiddenColumn, generateNumberValue, generateStringValue } from './sheetUtils';
@@ -61,7 +61,7 @@ function generateBranchRows(branches, branchCommits) {
 
   const branchesByAuthor = groupBy(
     branchesWithCommits,
-    branch => (branch.commits.length ? branch.commits[0].author().name() : 'none'),
+    branch => (branch.commits.ahead.length ? branch.commits.ahead[0].author().name() : 'none'),
   );
 
   return flatten(
@@ -72,8 +72,8 @@ function generateBranchRows(branches, branchCommits) {
 
         return [
           ...authorBranches.map((branch, index) => {
-            const lastCommitTime = branch.commits.length
-              ? moment(branch.commits[0].timeMs())
+            const lastCommitTime = branch.commits.ahead.length
+              ? moment(branch.commits.ahead[0].timeMs())
               : null;
             const date = lastCommitTime ? lastCommitTime.format('YYYY,M,D') : '';
             const time = lastCommitTime ? lastCommitTime.format('H,m,s') : '';
@@ -102,7 +102,7 @@ function generateBranchRows(branches, branchCommits) {
                 // authors
                 {
                   ...generateStringValue(
-                    uniq(branch.commits.map(c => c.author().name())).join(', '),
+                    uniq(branch.commits.ahead.map(c => c.author().name())).join(', '),
                   ),
                   userEnteredFormat: {
                     wrapStrategy: 'CLIP',
@@ -158,7 +158,7 @@ function generateBranchRows(branches, branchCommits) {
                 },
                 // behind
                 {
-                  ...generateNumberValue(2),
+                  ...generateNumberValue(branch.commits.behind.length),
                   userEnteredFormat: {
                     borders: {
                       left: {
@@ -170,7 +170,7 @@ function generateBranchRows(branches, branchCommits) {
                 },
                 // ahead
                 {
-                  ...generateNumberValue(branch.commits.length),
+                  ...generateNumberValue(branch.commits.ahead.length),
                   userEnteredFormat: {
                     horizontalAlignment: 'LEFT',
                     borders: {
@@ -182,7 +182,7 @@ function generateBranchRows(branches, branchCommits) {
                   },
                 },
                 // commits
-                ...branch.commits.slice(0, NUM_COMMITS_IN_SHEET).map(commit => ({
+                ...branch.commits.ahead.slice(0, NUM_COMMITS_IN_SHEET).map(commit => ({
                   userEnteredValue: {
                     stringValue: `${commit.sha().substring(0, 6)} ${commit.summary()}`,
                   },
@@ -328,10 +328,7 @@ async function reviewGoogleSheets(argv, remoteBranches, baseBranch, commitsInBas
 
   const branchCommits = await Promise.all(
     branches.map(async branch => {
-      const commits = await getCommitsInBranchUntil(
-        branch.ref,
-        commit => !shaInBase.includes(commit.sha()),
-      );
+      const commits = await getBranchAheadBehind(branch.ref, shaInBase);
 
       progressBar.tick();
       return commits;

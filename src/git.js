@@ -239,37 +239,6 @@ export async function deleteRemoteBranch(branchName, dryRun) {
   }
 }
 
-async function getCommitAncestors(commit, predicate, visited = []) {
-  const parents = await commit.getParents();
-
-  if (!predicate(commit)) {
-    return [];
-  }
-
-  return [
-    commit,
-    ...flatten(
-      await Promise.all(
-        parents.map(async parent => {
-          const parentSha = parent.sha();
-          if (!visited.includes(parentSha) && predicate(parent)) {
-            visited.push(parentSha);
-
-            return getCommitAncestors(parent, predicate, visited);
-          }
-          return [];
-        }),
-      ),
-    ),
-  ];
-}
-
-export async function getCommitsInBranchUntil(branchRef, predicate = () => true) {
-  const headCommit = await repository.getReferenceCommit(branchRef);
-
-  return (await getCommitAncestors(headCommit, predicate)).sort((a, b) => b.timeMs() - a.timeMs());
-}
-
 export async function getAllCommitsInBranch(branchRef) {
   const headCommit = await repository.getReferenceCommit(branchRef);
   const history = headCommit.history();
@@ -279,6 +248,16 @@ export async function getAllCommitsInBranch(branchRef) {
     history.on('error', reject);
     history.start();
   });
+}
+
+export async function getBranchAheadBehind(branchRef, shaInBase) {
+  const commitsInBranch = await getAllCommitsInBranch(branchRef);
+  const shaInBranch = commitsInBranch.map(commit => commit.sha());
+
+  return {
+    ahead: commitsInBranch.filter((commit, index) => !shaInBase.includes(shaInBranch[index])),
+    behind: shaInBase.filter(sha => !shaInBranch.includes(sha)),
+  };
 }
 
 export function getTargetRemote() {

@@ -1,7 +1,7 @@
 import moment from 'moment';
 import inquirer from 'inquirer';
 import { DEFAULT_BASE_BRANCHES, COMMITS_PAGE_SIZE } from './const';
-import { deleteRemoteBranch, getCommitsInBranchUntil } from './git';
+import { deleteRemoteBranch, getBranchAheadBehind } from './git';
 
 const ACTION_EXIT = 0;
 const ACTION_SHOW_MORE = 1;
@@ -55,10 +55,7 @@ async function logCommitsAndPrompt(commits, page = 0) {
 
 async function reviewBranch(branch, baseBranchName, commitsInBase) {
   const shaInBase = commitsInBase.map(commit => commit.sha());
-  const branchCommits = await getCommitsInBranchUntil(
-    branch.ref,
-    commit => !shaInBase.includes(commit.sha()),
-  );
+  const { ahead: branchCommits } = await getBranchAheadBehind(branch.ref, shaInBase);
 
   if (branchCommits.length) {
     console.log(`contains ${branchCommits.length} commits that don't exist in ${baseBranchName}:`);
