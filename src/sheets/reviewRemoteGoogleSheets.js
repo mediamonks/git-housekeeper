@@ -1,6 +1,7 @@
 import opn from 'opn';
 import ProgressBar from 'progress';
 import moment from 'moment';
+import inquirer from 'inquirer';
 import { flatten, groupBy, uniq } from 'lodash';
 import packageJson from '../../package.json';
 import {
@@ -10,6 +11,7 @@ import {
   COLOR_KEEP,
   DEFAULT_BASE_BRANCHES,
   NUM_COMMITS_IN_SHEET,
+  PROCESS_SHEET_COMMAND,
   SHEET_COL_SIZE,
 } from '../const';
 import { getBranchAheadBehind } from '../git';
@@ -318,6 +320,39 @@ function generateSheetData(branches, branchCommits, baseBranch) {
   };
 }
 
+async function sheetGeneratedMenu(argv, remoteBranches, baseBranch, response) {
+  const { action } = await inquirer.prompt([
+    {
+      name: 'action',
+      message: '[review remote] What would you like to do now?',
+      type: 'list',
+      choices: [
+        {
+          name: 'open the sheet url again',
+          value: () => {
+            opn(response.spreadsheetUrl);
+            return sheetGeneratedMenu(argv, remoteBranches, baseBranch, response);
+          },
+        },
+        {
+          name: 'the sheet has been filled, process it now',
+          value: () => false,
+        },
+        {
+          name: 'exit git-housekeeper and come back to process the sheet later',
+          value: () => {
+            console.log(
+              `to complete the review, run the following command:\ngit-housekeeper ${PROCESS_SHEET_COMMAND}`,
+            );
+          },
+        },
+      ],
+    },
+  ]);
+
+  return action();
+}
+
 async function reviewGoogleSheets(argv, remoteBranches, baseBranch, commitsInBase) {
   const authenticated = await authenticate();
   if (!authenticated) {
@@ -357,7 +392,12 @@ async function reviewGoogleSheets(argv, remoteBranches, baseBranch, commitsInBas
   }
   console.log('Created google sheet at:');
   console.log(response.spreadsheetUrl);
+  console.log(
+    'Please fill in the action column of the google sheet and return to git-housekeeper when completed',
+  );
   opn(response.spreadsheetUrl);
+
+  return sheetGeneratedMenu(argv, remoteBranches, baseBranch, response);
 }
 
 export default reviewGoogleSheets;

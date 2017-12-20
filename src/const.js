@@ -9,7 +9,7 @@ export const GAPI_TOKEN_DIR = `${process.env.HOME ||
 export const GAPI_TOKEN_PATH = `${GAPI_TOKEN_DIR}googleapis-branch-cleanup-${
   packageJson.version
 }.json`;
-
+export const PROCESS_SHEET_COMMAND = 'process-sheet';
 export const DEFAULT_CLIENT_SECRET_PATHS = [
   './google_client_secret.json',
   `${GAPI_TOKEN_DIR}google_client_secret.json`,
