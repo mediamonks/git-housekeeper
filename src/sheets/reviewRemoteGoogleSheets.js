@@ -3,7 +3,12 @@ import ProgressBar from 'progress';
 import moment from 'moment';
 import { flatten, groupBy, uniq } from 'lodash';
 import {
-  COLOR_BORDER_DARK, COLOR_BORDER_LIGHT, DEFAULT_BASE_BRANCHES, NUM_COMMITS_IN_SHEET,
+  COLOR_BORDER_DARK,
+  COLOR_BORDER_LIGHT,
+  COLOR_DELETE,
+  COLOR_KEEP,
+  DEFAULT_BASE_BRANCHES,
+  NUM_COMMITS_IN_SHEET,
   SHEET_COL_SIZE,
 } from '../const';
 import { getCommitsInBranchUntil } from '../git';
@@ -204,6 +209,55 @@ function generateBranchRows(branches, branchCommits) {
   );
 }
 
+const generateConditionalFormatting = () => [
+  {
+    ranges: [
+      {
+        sheetId: 0,
+        startRowIndex: 5,
+        startColumnIndex: 1,
+        endColumnIndex: 7,
+      },
+    ],
+    booleanRule: {
+      condition: {
+        type: 'CUSTOM_FORMULA',
+        values: [
+          {
+            userEnteredValue: '=EQ(INDIRECT("RC7",false), "KEEP")',
+          },
+        ],
+      },
+      format: {
+        backgroundColor: COLOR_KEEP,
+      },
+    },
+  },
+  {
+    ranges: [
+      {
+        sheetId: 0,
+        startRowIndex: 2,
+        startColumnIndex: 1,
+        endColumnIndex: 7,
+      },
+    ],
+    booleanRule: {
+      condition: {
+        type: 'CUSTOM_FORMULA',
+        values: [
+          {
+            userEnteredValue: '=EQ(INDIRECT("RC7",false), "DELETE")',
+          },
+        ],
+      },
+      format: {
+        backgroundColor: COLOR_DELETE,
+      },
+    },
+  },
+];
+
 function generateSheetData(branches, branchCommits, baseBranch) {
   const { merges, rowData } = processColSpan([
     ...generateTitleRows(baseBranch),
@@ -248,6 +302,7 @@ function generateSheetData(branches, branchCommits, baseBranch) {
       ],
     },
     merges,
+    conditionalFormats: generateConditionalFormatting(),
   };
 }
 

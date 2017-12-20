@@ -36,6 +36,18 @@ export const COLOR_BORDER_LIGHT = {
   blue: 0.6,
   alpha: 1,
 };
+export const COLOR_KEEP = {
+  red: 0.729,
+  green: 0.91,
+  blue: 0.608,
+  alpha: 1,
+};
+export const COLOR_DELETE = {
+  red: 0.91,
+  green: 135 / 255,
+  blue: 141 / 255,
+  alpha: 1,
+};
 export const SHEET_COL_SIZE = {
   HIDDEN: 5,
   S: 60,
