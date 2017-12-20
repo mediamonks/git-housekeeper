@@ -54,4 +54,4 @@ export const SHEET_COL_SIZE = {
   M: 150,
   L: 300,
 };
-export const NUM_COMMITS_IN_SHEET = 16;
+export const NUM_COMMITS_IN_SHEET = 15;

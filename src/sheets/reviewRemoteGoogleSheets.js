@@ -204,6 +204,13 @@ function generateBranchRows(branches, branchCommits) {
                     },
                   },
                 })),
+                ...(branch.commits.ahead.length > NUM_COMMITS_IN_SHEET
+                  ? [
+                      generateStringValue(
+                        `(${branch.commits.ahead.length - NUM_COMMITS_IN_SHEET} more)`,
+                      ),
+                    ]
+                  : []),
               ],
             };
           }),
