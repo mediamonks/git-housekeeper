@@ -5,7 +5,12 @@ import promisify from 'es6-promisify';
 import inquirer from 'inquirer';
 import fs from 'fs';
 import path from 'path';
-import { DEFAULT_CLIENT_SECRET_PATH, GAPI_SCOPES, GAPI_TOKEN_DIR, GAPI_TOKEN_PATH } from '../const';
+import {
+  DEFAULT_CLIENT_SECRET_PATHS,
+  GAPI_SCOPES,
+  GAPI_TOKEN_DIR,
+  GAPI_TOKEN_PATH,
+} from '../const';
 
 let oauth2Client;
 const readFile = promisify(fs.readFile, fs);
@@ -15,7 +20,7 @@ async function promptCredentialsPath() {
   const { clientSecretPath } = await inquirer.prompt([
     {
       name: 'clientSecretPath',
-      message: '[review collab] enter path: ',
+      message: '[review remote] enter path: ',
     },
   ]);
 
@@ -23,33 +28,39 @@ async function promptCredentialsPath() {
   return getCredentials(clientSecretPath);
 }
 
-async function getCredentials(clientSecretPath = DEFAULT_CLIENT_SECRET_PATH) {
-  const resolvedPath = path.resolve(clientSecretPath);
-  if (fs.existsSync(resolvedPath)) {
-    console.log(`client secret for google api found at ${clientSecretPath}`);
-    const clientSecretFile = await readFile(resolvedPath, { encoding: 'utf8' });
+async function getCredentials(clientSecretPath = null) {
+  const readPaths = clientSecretPath ? [clientSecretPath] : DEFAULT_CLIENT_SECRET_PATHS;
 
-    try {
-      return JSON.parse(clientSecretFile);
-    } catch (e) {
-      console.log('Problem parsing client secret json');
+  // eslint-disable-next-line no-restricted-syntax
+  for (const readPath of readPaths) {
+    const resolvedPath = path.resolve(readPath);
+    if (fs.existsSync(resolvedPath)) {
+      console.log(`client secret for google api found at ${readPath}`);
+      // eslint-disable-next-line no-await-in-loop
+      const clientSecretFile = await readFile(resolvedPath, { encoding: 'utf8' });
+
+      try {
+        return JSON.parse(clientSecretFile);
+      } catch (e) {
+        console.log('Problem parsing client secret json');
+      }
     }
   }
 
   const { action } = await inquirer.prompt([
     {
       name: 'action',
-      message: '[review collab] how would you like to provide the google api client secret?',
+      message: '[review remote] how would you like to provide the google api client secret?',
       type: 'list',
       choices: [
         {
           name: `enter a path to the json file`,
           value: () => promptCredentialsPath(clientSecretPath),
         },
-        {
-          name: `try again to read json file from ${clientSecretPath}`,
-          value: () => getCredentials(clientSecretPath),
-        },
+        ...DEFAULT_CLIENT_SECRET_PATHS.map(defaultPath => ({
+          name: `try again to read json file from ${defaultPath}`,
+          value: () => getCredentials(defaultPath),
+        })),
         {
           name: 'return to main menu',
           value: () => null,
@@ -87,7 +98,7 @@ async function getNewToken() {
   const { code } = await inquirer.prompt([
     {
       name: 'code',
-      message: '[review collab] Please enter the code retrieved by logging in here',
+      message: '[review remote] Please enter the code retrieved by logging in here',
     },
   ]);
 
