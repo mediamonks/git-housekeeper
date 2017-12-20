@@ -1,13 +1,21 @@
 {
   "name": "git-housekeeper",
   "version": "0.1.0",
-  "description": "A housekeeping utility to help collaboratively clean up git branches using Google Sheets",
+  "description": "A housekeeping utility to clean up your git repository",
   "main": "lib/index.js",
   "scripts": {
     "build": "babel src -d lib",
     "lint": "eslint src --ext .js --cache",
     "prettify": "prettier --write \"src/**/*.{js,json}\""
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mediamonks/git-housekeeper.git"
+  },
+  "bugs": {
+    "url": "https://github.com/mediamonks/git-housekeeper/issues"
+  },
+  "homepage": "https://github.com/mediamonks/git-housekeeper#readme",
   "author": "Floris Bernard",
   "license": "ISC",
   "devDependencies": {

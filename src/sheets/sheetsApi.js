@@ -7,6 +7,7 @@ import fs from 'fs';
 import path from 'path';
 import { DEFAULT_CLIENT_SECRET_PATH, GAPI_SCOPES, GAPI_TOKEN_DIR, GAPI_TOKEN_PATH } from '../const';
 
+let oauth2Client;
 const readFile = promisify(fs.readFile, fs);
 const writeFile = promisify(fs.writeFile, fs);
 
@@ -14,7 +15,7 @@ async function promptCredentialsPath() {
   const { clientSecretPath } = await inquirer.prompt([
     {
       name: 'clientSecretPath',
-      message: 'enter path: ',
+      message: '[review collab] enter path: ',
     },
   ]);
 
@@ -38,7 +39,7 @@ async function getCredentials(clientSecretPath = DEFAULT_CLIENT_SECRET_PATH) {
   const { action } = await inquirer.prompt([
     {
       name: 'action',
-      message: 'how would you like to provide the google api client secret?',
+      message: '[review collab] how would you like to provide the google api client secret?',
       type: 'list',
       choices: [
         {
@@ -50,7 +51,7 @@ async function getCredentials(clientSecretPath = DEFAULT_CLIENT_SECRET_PATH) {
           value: () => getCredentials(clientSecretPath),
         },
         {
-          name: 'exit',
+          name: 'return to main menu',
           value: () => null,
         },
       ],
@@ -73,7 +74,7 @@ async function storeToken(token) {
   return token;
 }
 
-async function getNewToken(oauth2Client) {
+async function getNewToken() {
   const authUrl = oauth2Client.generateAuthUrl({
     access_type: 'offline',
     scope: GAPI_SCOPES,
@@ -86,7 +87,7 @@ async function getNewToken(oauth2Client) {
   const { code } = await inquirer.prompt([
     {
       name: 'code',
-      message: 'Please enter the code retrieved by logging in here',
+      message: '[review collab] Please enter the code retrieved by logging in here',
     },
   ]);
 
@@ -103,7 +104,7 @@ async function getNewToken(oauth2Client) {
   return token;
 }
 
-async function getGapiToken(oauth2Client) {
+async function getGapiToken() {
   try {
     const tokenFile = await readFile(GAPI_TOKEN_PATH, { encoding: 'utf8' });
     return JSON.parse(tokenFile);
@@ -111,23 +112,48 @@ async function getGapiToken(oauth2Client) {
     // ignore
   }
 
-  return getNewToken(oauth2Client);
+  return getNewToken();
 }
 
 export async function authenticate() {
   const credentials = await getCredentials();
 
   if (!credentials) {
-    return null;
+    return false;
   }
 
   const clientSecret = credentials.installed.client_secret;
   const clientId = credentials.installed.client_id;
   const redirectUrl = credentials.installed.redirect_uris[0];
   const auth = new GoogleAuth();
-  const oauth2Client = new auth.OAuth2(clientId, clientSecret, redirectUrl);
-  const token = await getGapiToken(oauth2Client);
+  oauth2Client = new auth.OAuth2(clientId, clientSecret, redirectUrl);
+  const token = await getGapiToken();
+  if (!token) {
+    return false;
+  }
   oauth2Client.credentials = token;
 
-  return oauth2Client;
+  return true;
+}
+
+export async function createSheet(sheetData, title) {
+  const sheets = google.sheets('v4');
+  const createSpreadsheet = promisify(sheets.spreadsheets.create, sheets.spreadsheets);
+
+  let response;
+  try {
+    response = await createSpreadsheet({
+      resource: {
+        properties: {
+          title,
+        },
+        sheets: [sheetData],
+      },
+      auth: oauth2Client,
+    });
+    return response;
+  } catch (e) {
+    console.error(e);
+    return false;
+  }
 }

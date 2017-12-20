@@ -14,3 +14,9 @@ export const GAPI_SCOPES = [
   'https://www.googleapis.com/auth/spreadsheets',
   'https://www.googleapis.com/auth/drive.metadata.readonly',
 ];
+export const COLOR_HIDDEN_COLUMN = {
+  red: .847,
+  green: .184,
+  blue: .659,
+  alpha: 1,
+};
