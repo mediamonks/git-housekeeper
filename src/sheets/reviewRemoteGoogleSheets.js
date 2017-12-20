@@ -2,6 +2,7 @@ import opn from 'opn';
 import ProgressBar from 'progress';
 import moment from 'moment';
 import { flatten, groupBy, uniq } from 'lodash';
+import packageJson from '../../package.json';
 import {
   COLOR_BORDER_DARK,
   COLOR_BORDER_LIGHT,
@@ -339,7 +340,10 @@ async function reviewGoogleSheets(argv, remoteBranches, baseBranch, commitsInBas
 
   progressBar.terminate();
   const sheetData = generateSheetData(branches, branchCommits, baseBranch);
-  const response = await createSheet(sheetData, 'test sheet');
+  const response = await createSheet(
+    sheetData,
+    `${packageJson.name} ${moment().format('MM/DD/YYYY HH:MM')}`,
+  );
   if (!response) {
     return true;
   }
