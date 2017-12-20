@@ -24,3 +24,22 @@ export const COLOR_HIDDEN_COLUMN = {
   blue: 0.659,
   alpha: 1,
 };
+export const COLOR_BORDER_DARK = {
+  red: 0.4,
+  green: 0.4,
+  blue: 0.4,
+  alpha: 1,
+};
+export const COLOR_BORDER_LIGHT = {
+  red: 0.8,
+  green: 0.8,
+  blue: 0.8,
+  alpha: 1,
+};
+export const SHEET_COL_SIZE = {
+  HIDDEN: 5,
+  S: 60,
+  M: 150,
+  L: 300,
+};
+export const NUM_COMMITS_IN_SHEET = 16;
