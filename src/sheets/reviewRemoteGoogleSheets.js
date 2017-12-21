@@ -18,6 +18,7 @@ import { getBranchAheadBehind } from '../git';
 import { authenticate, createSheet } from './sheetsApi';
 import { generateHeadRow, generateTitleRows } from './sheetTitleHead';
 import { generateHiddenColumn, generateNumberValue, generateStringValue } from './sheetUtils';
+import processSheet from './processSheet';
 
 function processColSpan(rowDataWithSpan, sheetId = 0) {
   const rowData = [];
@@ -336,7 +337,10 @@ async function sheetGeneratedMenu(argv, remoteBranches, baseBranch, response) {
         },
         {
           name: 'the sheet has been filled, process it now',
-          value: () => false,
+          value: () =>
+            processSheet(argv, response.spreadsheetId, remoteBranches, baseBranch).then(
+              () => false,
+            ),
         },
         {
           name: 'exit git-housekeeper and come back to process the sheet later',

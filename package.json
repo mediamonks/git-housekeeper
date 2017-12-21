@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "description": "A housekeeping utility to clean up your git repository",
   "main": "lib/index.js",
+  "bin": "lib/index.js",
   "scripts": {
     "build": "babel src -d lib",
     "lint": "eslint src --ext .js --cache",

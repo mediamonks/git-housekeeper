@@ -15,6 +15,9 @@ import {
 let oauth2Client;
 const readFile = promisify(fs.readFile, fs);
 const writeFile = promisify(fs.writeFile, fs);
+const sheets = google.sheets('v4');
+const createSpreadsheet = promisify(sheets.spreadsheets.create, sheets.spreadsheets);
+const getSpreadsheet = promisify(sheets.spreadsheets.get, sheets.spreasheets);
 
 async function promptCredentialsPath() {
   const { clientSecretPath } = await inquirer.prompt([
@@ -148,9 +151,6 @@ export async function authenticate() {
 }
 
 export async function createSheet(sheetData, title) {
-  const sheets = google.sheets('v4');
-  const createSpreadsheet = promisify(sheets.spreadsheets.create, sheets.spreadsheets);
-
   let response;
   try {
     response = await createSpreadsheet({
@@ -167,4 +167,12 @@ export async function createSheet(sheetData, title) {
     console.error(e);
     return false;
   }
+}
+
+export function getSheetData(spreadsheetId) {
+  return getSpreadsheet({
+    spreadsheetId,
+    includeGridData: true,
+    auth: oauth2Client,
+  });
 }
