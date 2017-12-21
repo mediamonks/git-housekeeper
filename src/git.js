@@ -1,6 +1,6 @@
 import inquirer from 'inquirer';
 import os from 'os';
-import { flatten } from 'lodash';
+import { keyBy, flatten } from 'lodash';
 import { Repository, Remote, Cred, Reference } from 'nodegit';
 
 let repository;
@@ -250,6 +250,21 @@ export async function getAllCommitsInBranch(branchRef) {
   });
 }
 
+export async function getCommitHistoryMap(headCommitRef) {
+  const headCommit = await repository.getReferenceCommit(headCommitRef);
+  const history = headCommit.history();
+
+  return new Promise((resolve, reject) => {
+    history.on('end', resolve);
+    history.on('error', reject);
+    history.start();
+  }).then(commits =>
+    keyBy(commits.map(commit => ({ commit, parents: commit.parents() })), ({ commit }) =>
+      commit.sha(),
+    ),
+  );
+}
+
 export async function getBranchAheadBehind(branchRef, shaInBase) {
   const commitsInBranch = await getAllCommitsInBranch(branchRef);
   const shaInBranch = commitsInBranch.map(commit => commit.sha());
@@ -257,6 +272,104 @@ export async function getBranchAheadBehind(branchRef, shaInBase) {
   return {
     ahead: commitsInBranch.filter((commit, index) => !shaInBase.includes(shaInBranch[index])),
     behind: shaInBase.filter(sha => !shaInBranch.includes(sha)),
+  };
+}
+
+export async function getAncestorsUntilBase(commit, commitsInBaseMap, visited = []) {
+  const commitSha = commit.sha();
+  visited.push(commitSha);
+
+  if (commitsInBaseMap[commitSha]) {
+    return { commits: [], baseCommitSha: [commitSha] };
+  }
+
+  const parentResults = await Promise.all(
+    (await commit.getParents()).map(async parentCommit => {
+      const parentSha = parentCommit.sha();
+
+      if (visited.includes(parentSha)) {
+        return {
+          commits: [],
+          baseCommitSha: [],
+        };
+      }
+      if (commitsInBaseMap[parentSha]) {
+        return {
+          commits: [parentCommit],
+          baseCommitSha: [parentSha],
+        };
+      }
+
+      return getAncestorsUntilBase(parentCommit, commitsInBaseMap, visited);
+    }),
+  );
+
+  return {
+    commits: [commit, ...flatten(parentResults.map(result => result.commits))],
+    baseCommitSha: flatten(parentResults.map(result => result.baseCommitSha)),
+  };
+}
+
+function* traverseBaseCommitsUntil(commit, commitsInBaseMap, shaToFind, visited = []) {
+  visited.push(commit.sha);
+  yield commit;
+
+  if (commit.parents.length) {
+    const branches = [];
+
+    // eslint-disable-next-line no-restricted-syntax
+    for (const parent of commit.parents) {
+      const shaIndex = shaToFind.indexOf(parent);
+      if (shaIndex >= 0) {
+        shaToFind.splice(shaIndex, 1);
+      } else if (!visited.includes(parent.sha)) {
+        branches.push(
+          traverseBaseCommitsUntil(
+            commitsInBaseMap[parent.sha],
+            commitsInBaseMap,
+            shaToFind,
+            visited,
+          ),
+        );
+      }
+    }
+
+    while (branches.length) {
+      for (let i = branches.length - 1; i >= 0; i--) {
+        const { value, done } = branches[i].next();
+
+        if (done) {
+          branches.splice(i, 1);
+        } else {
+          yield value;
+        }
+      }
+    }
+  }
+}
+
+export async function getBranchAheadBehind2(branchRef, commitsInBaseMap, baseHeadRef) {
+  const baseHead = await repository.getReferenceCommit(baseHeadRef);
+  const headCommit = await repository.getReferenceCommit(branchRef);
+
+  const { commits: commitsInBranch, baseCommitSha } = await getAncestorsUntilBase(
+    headCommit,
+    commitsInBaseMap,
+  );
+
+  const baseCommits = Array.from(
+    traverseBaseCommitsUntil(commitsInBaseMap[baseHead.sha()], commitsInBaseMap, [
+      ...baseCommitSha,
+    ]),
+  );
+
+  return {
+    ahead: commitsInBranch.filter(
+      commit => !baseCommits.some(baseCommit => baseCommit.sha === commit.sha()),
+    ),
+    behind: baseCommits.filter(
+      baseCommit => !commitsInBranch.some(commit => baseCommit.sha === commit.sha()),
+    ),
   };
 }
 

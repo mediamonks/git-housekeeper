@@ -14,7 +14,7 @@ import {
   PROCESS_SHEET_COMMAND,
   SHEET_COL_SIZE,
 } from '../const';
-import { getBranchAheadBehind } from '../git';
+import { getCommitHistoryMap, getBranchAheadBehind2, getReferenceFromTargetRemote } from '../git';
 import { authenticate, createSheet } from './sheetsApi';
 import { generateHeadRow, generateTitleRows } from './sheetTitleHead';
 import { generateHiddenColumn, generateNumberValue, generateStringValue } from './sheetUtils';
@@ -357,7 +357,9 @@ async function sheetGeneratedMenu(argv, remoteBranches, baseBranch, response) {
   return action();
 }
 
-async function reviewGoogleSheets(argv, remoteBranches, baseBranch, commitsInBase) {
+async function reviewGoogleSheets(argv, remoteBranches, baseBranch) {
+  const baseHeadReference = await getReferenceFromTargetRemote(baseBranch);
+  const commitsInBaseMap = await getCommitHistoryMap(baseHeadReference);
   const authenticated = await authenticate();
   if (!authenticated) {
     return true;
@@ -372,20 +374,47 @@ async function reviewGoogleSheets(argv, remoteBranches, baseBranch, commitsInBas
   );
 
   console.log('reading commits on remote branches...');
+  // const progressBar = new ProgressBar(':bar', { total: branches.length });
 
-  const shaInBase = commitsInBase.map(commit => commit.sha());
-  const progressBar = new ProgressBar(':bar', { total: branches.length });
+  for (const branch of branches) {
+    const { ahead, behind } = await getBranchAheadBehind2(
+      branch.ref,
+      commitsInBaseMap,
+      baseHeadReference,
+    );
 
-  const branchCommits = await Promise.all(
-    branches.map(async branch => {
-      const commits = await getBranchAheadBehind(branch.ref, shaInBase);
+    console.log(branch.name);
+    console.log(ahead.length);
+    console.log(behind.length);
 
-      progressBar.tick();
-      return commits;
-    }),
-  );
+    if (branch.name === 'refs/remotes/origin/feature/branch-stat') {
+      throw new Error();
+    }
+  }
 
-  progressBar.terminate();
+  // const branchCommits = await Promise.all(
+  //   branches.map(async branch => {
+  //     const { ahead, behind } = await getBranchAheadBehind2(
+  //       branch.ref,
+  //       commitsInBaseMap,
+  //       baseHeadReference,
+  //     );
+  //
+  //     console.log(branch.name);
+  //     console.log(ahead.length);
+  //     console.log(behind.length);
+  //
+  //     if (branch.name === 'refs/remotes/origin/feature/branch-stat') {
+  //       throw new Error();
+  //     }
+  //
+  //     // progressBar.tick();
+  //     return commits;
+  //   }),
+  // );
+
+  // progressBar.terminate();
+  return true;
   const sheetData = generateSheetData(branches, branchCommits, baseBranch);
   const response = await createSheet(
     sheetData,

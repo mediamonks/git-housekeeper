@@ -1,7 +1,12 @@
 import moment from 'moment';
 import inquirer from 'inquirer';
 import { DEFAULT_BASE_BRANCHES, COMMITS_PAGE_SIZE } from './const';
-import { deleteRemoteBranch, getBranchAheadBehind } from './git';
+import {
+  deleteRemoteBranch,
+  getAllCommitsInBranch,
+  getBranchAheadBehind,
+  getReferenceFromTargetRemote,
+} from './git';
 
 const ACTION_EXIT = 0;
 const ACTION_SHOW_MORE = 1;
@@ -66,7 +71,9 @@ async function reviewBranch(branch, baseBranchName, commitsInBase) {
   return logCommitsAndPrompt(branchCommits);
 }
 
-async function reviewRemoteInteractive(argv, remoteBranches, baseBranch, commitsInBase) {
+async function reviewRemoteInteractive(argv, remoteBranches, baseBranch) {
+  const commitsInBase = await getAllCommitsInBranch(await getReferenceFromTargetRemote(baseBranch));
+
   const branches = remoteBranches.filter(
     branch =>
       !(
