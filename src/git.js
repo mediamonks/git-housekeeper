@@ -259,8 +259,13 @@ export async function getCommitHistoryMap(headCommitRef) {
     history.on('error', reject);
     history.start();
   }).then(commits =>
-    keyBy(commits.map(commit => ({ commit, parents: commit.parents() })), ({ commit }) =>
-      commit.sha(),
+    keyBy(
+      commits.map(commit => ({
+        commit,
+        parentSha: commit.parents().map(parent => parent.tostrS()),
+        sha: commit.sha(),
+      })),
+      commit => commit.sha,
     ),
   );
 }
@@ -295,7 +300,7 @@ export async function getAncestorsUntilBase(commit, commitsInBaseMap, visited = 
       }
       if (commitsInBaseMap[parentSha]) {
         return {
-          commits: [parentCommit],
+          commits: [],
           baseCommitSha: [parentSha],
         };
       }
@@ -310,31 +315,54 @@ export async function getAncestorsUntilBase(commit, commitsInBaseMap, visited = 
   };
 }
 
-function* traverseBaseCommitsUntil(commit, commitsInBaseMap, shaToFind, visited = []) {
-  visited.push(commit.sha);
-  yield commit;
+function markInTargetBranch(commitMap, sha) {
+  /* eslint-disable no-param-reassign */
+  if (commitMap[sha] && !commitMap[sha].isInTargetBranch) {
+    commitMap[sha].isInTargetBranch = true;
+    commitMap[sha].parents.forEach(parent => markInTargetBranch(commitMap, parent.tostrS()));
+  }
+  /* eslint-enable no-param-reassign */
+}
 
-  if (commit.parents.length) {
+function* traverseBaseCommitsUntil(
+  commit,
+  commitsInBaseMap,
+  shaToFind,
+  visited = {},
+  isInTargetBranch = false,
+) {
+  const shaIndex = shaToFind.indexOf(commit.sha);
+  if (shaIndex >= 0) {
+    shaToFind.splice(shaIndex, 1);
+    isInTargetBranch = true; // eslint-disable-line no-param-reassign
+  }
+
+  visited[commit.sha] = { ...commit, isInTargetBranch }; // eslint-disable-line no-param-reassign
+  yield visited[commit.sha];
+
+  if (commit.parentSha.length) {
     const branches = [];
 
     // eslint-disable-next-line no-restricted-syntax
-    for (const parent of commit.parents) {
-      const shaIndex = shaToFind.indexOf(parent);
-      if (shaIndex >= 0) {
-        shaToFind.splice(shaIndex, 1);
-      } else if (!visited.includes(parent.sha)) {
+    for (const parentSha of commit.parentSha) {
+      if (visited[parentSha]) {
+        if (isInTargetBranch) {
+          markInTargetBranch(visited, parentSha);
+        }
+      } else {
         branches.push(
           traverseBaseCommitsUntil(
-            commitsInBaseMap[parent.sha],
+            commitsInBaseMap[parentSha],
             commitsInBaseMap,
             shaToFind,
             visited,
+            isInTargetBranch,
           ),
         );
       }
     }
 
-    while (branches.length) {
+    while (branches.length && shaToFind.length) {
       for (let i = branches.length - 1; i >= 0; i--) {
         const { value, done } = branches[i].next();
 
@@ -367,9 +395,13 @@ export async function getBranchAheadBehind2(branchRef, commitsInBaseMap, baseHea
     ahead: commitsInBranch.filter(
       commit => !baseCommits.some(baseCommit => baseCommit.sha === commit.sha()),
     ),
-    behind: baseCommits.filter(
-      baseCommit => !commitsInBranch.some(commit => baseCommit.sha === commit.sha()),
-    ),
+    behind: baseCommits
+      .filter(
+        baseCommit =>
+          !baseCommit.isInTargetBranch &&
+          !commitsInBranch.some(commit => baseCommit.sha === commit.sha()),
+      )
+      .map(b => b.commit),
   };
 }
 
