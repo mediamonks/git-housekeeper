@@ -5,26 +5,9 @@ import { openRepository, fetchRemote, getBranches } from './git';
 import reviewGoneBranches from './reviewGoneBranches';
 import reviewRemoteBranches from './reviewRemoteBranches';
 
-const { argv } = yargs
-  .usage('$0 <path>', 'starts branch cleanup for the given repository', y => {
-    y.positional('path', {
-      describe: 'the path to the repository to analyse',
-      type: 'string',
-    });
-  })
-  .options({
-    d: {
-      alias: 'dry-mode',
-      default: false,
-      describe: "Runs in dry mode (won't remove any branches)",
-      type: 'boolean',
-    },
-  })
-  .help();
-
 let branches;
 
-async function mainMenu() {
+async function mainMenu(argv) {
   const goneBranches = branches.locals.filter(branch => branch.gone);
   const remoteBranches = branches.remotes.filter(branch => branch.onTargetRemote);
 
@@ -53,17 +36,54 @@ async function mainMenu() {
   if (action) {
     const shouldContinue = await action();
     if (shouldContinue) {
-      await mainMenu();
+      await mainMenu(argv);
     }
   }
 }
 
-(async function main() {
+async function main(argv) {
   console.log('\n\nWelcome to git housekeeper! \n\n');
   const repositoryPath = path.resolve(argv.path);
   await openRepository(repositoryPath);
   await fetchRemote();
   branches = await getBranches();
-  await mainMenu();
+  await mainMenu(argv);
   console.log('\nBye! \n');
-})();
+}
+
+yargs
+  .command(
+    '$0 <path>',
+    'starts branch cleanup for the given repository',
+    y => {
+      y
+        .options({
+          d: {
+            alias: 'dry-mode',
+            default: false,
+            describe: "Runs in dry mode (won't remove any branches)",
+            type: 'boolean',
+          },
+        })
+        .positional('path', {
+          describe: 'the path to the repository to analyse',
+          type: 'string',
+        });
+    },
+    main,
+  )
+  .command(
+    'process-sheet <path>',
+    'Process a Google Sheet previously created with git-housekeeper',
+    y => {
+      y.positional('path', {
+        describe: 'the path to the repository to analyse',
+        type: 'string',
+      });
+    },
+    argv => {
+      console.log(argv.path);
+    },
+  )
+  .help()
+  .wrap(yargs.terminalWidth()).argv;
