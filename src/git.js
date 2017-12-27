@@ -1,6 +1,5 @@
 import inquirer from 'inquirer';
 import os from 'os';
-import { flatten } from 'lodash';
 import { Repository, Remote, Cred, Reference } from 'nodegit';
 
 let repository;
@@ -178,7 +177,6 @@ export async function setRemote(remoteName, remoteUrl) {
   if (!targetRemote) {
     throw new Error(`Could not find remote with name "${remoteName}"`);
   }
-
 
   if (targetRemote.url() !== remoteUrl) {
     throw new Error(`Remote "${remoteName}" does nog match url "${remoteUrl}"`);

@@ -338,9 +338,9 @@ async function sheetGeneratedMenu(argv, remoteBranches, baseBranch, response) {
         {
           name: 'the sheet has been filled, process it now',
           value: () =>
-            processSheet(argv, response.spreadsheetId, remoteBranches, baseBranch).then(
-              () => false,
-            ),
+            processSheet(argv, response.spreadsheetId, remoteBranches, baseBranch).then(() => {
+              return processSheet(argv, response.spreadsheetId);
+            }),
         },
         {
           name: 'exit git-housekeeper and come back to process the sheet later',

@@ -1,8 +1,21 @@
 import path from 'path';
+import inquirer from 'inquirer';
 import { getSheetData } from './sheetsApi';
-import { setRemote, fetchRemote, getBranches, openRepository } from '../git';
+import { setRemote, fetchRemote, getBranches, openRepository, deleteBranch } from '../git';
 
 const META_PROPS = ['version', 'remote', 'url', 'baseBranch'];
+
+async function promptConfirmRemoveBranches() {
+  const { response } = await inquirer.prompt([
+    {
+      name: 'response',
+      message: 'THIS CANNOT BE UNDONE!',
+      type: 'confirm',
+    },
+  ]);
+
+  return response;
+}
 
 async function processSheet(argv, spreadsheetId) {
   console.log('getting sheet data...');
@@ -63,6 +76,22 @@ async function processSheet(argv, spreadsheetId) {
 
   console.log('\nBranches to delete: ');
   deleteRefs.forEach(ref => console.log(` - ${ref} (DELETE)`));
+
+  console.log(`\n Are you sure you want to delete ${deleteRefs.length} branches on remote?`);
+
+  if (await promptConfirmRemoveBranches()) {
+    // eslint-disable-next-line no-restricted-syntax
+    for (const ref of deleteRefs) {
+      const branch = branches.remotes.find(remoteBranch => remoteBranch.name === ref);
+
+      if (!branch) {
+        console.warn(`Could not find branch: ${branch}`);
+      } else {
+        // eslint-disable-next-line no-await-in-loop
+        await deleteBranch(branch.ref, argv.d);
+      }
+    }
+  }
 }
 
 export default processSheet;
