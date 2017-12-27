@@ -58,14 +58,14 @@ async function main(argv) {
 yargs
   .command(
     '$0 <path>',
-    'starts branch cleanup for the given repository',
+    'run git-housekeeper on the given repository',
     y => {
       y
         .options({
           d: {
-            alias: 'dry-mode',
+            alias: 'dry-run',
             default: false,
-            describe: "Runs in dry mode (won't remove any branches)",
+            describe: "Executes a dry run (won't remove any branches)",
             type: 'boolean',
           },
         })
@@ -78,7 +78,7 @@ yargs
   )
   .command(
     'process-sheet <path>',
-    'Process a Google Sheet previously created with git-housekeeper',
+    'process a Google Sheet previously created with git-housekeeper',
     y => {
       y.positional('path', {
         describe: 'the path to the repository to analyse',
