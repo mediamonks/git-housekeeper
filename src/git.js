@@ -253,16 +253,6 @@ export async function deleteBranch(branchRef, dryRun, remote = false) {
   }
 }
 
-export async function deleteRemoteBranch(branchName, dryRun) {
-  const command = `git push :refs/heads/${branchName}`;
-  if (dryRun) {
-    console.log(`[dry run] ${command}`);
-  } else {
-    console.log(command);
-    await targetRemote.push(`:refs/heads/${branchName}`, gitOpts.fetchOpts);
-  }
-}
-
 export async function getAllCommitsInBranch(branchRef) {
   const headCommit = await repository.getReferenceCommit(branchRef);
   const history = headCommit.history();

@@ -1,7 +1,7 @@
 import moment from 'moment';
 import inquirer from 'inquirer';
 import { DEFAULT_BASE_BRANCHES, COMMITS_PAGE_SIZE } from './const';
-import { deleteRemoteBranch, getBranchAheadBehind } from './git';
+import { deleteBranch, getBranchAheadBehind } from './git';
 
 const ACTION_EXIT = 0;
 const ACTION_SHOW_MORE = 1;
@@ -86,7 +86,7 @@ async function reviewRemoteInteractive(argv, remoteBranches, baseBranch, commits
         return false;
       case ACTION_DELETE:
         // eslint-disable-next-line no-await-in-loop
-        await deleteRemoteBranch(branch.shortName, argv.d);
+        await deleteBranch(branch.ref, argv.d, true);
         break;
       case ACTION_KEEP:
         break;
