@@ -18,7 +18,7 @@ async function findSheet(argv) {
     process.exit();
   }
 
-  await processSheet(argv, sheetId);
+  return processSheet(argv, sheetId);
 }
 
 export default findSheet;
