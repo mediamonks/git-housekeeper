@@ -9,7 +9,7 @@ async function promptConfirmRemoveBranches() {
   const { response } = await inquirer.prompt([
     {
       name: 'response',
-      message: 'THIS CANNOT BE UNDONE!',
+      message: 'Are you sure? THIS CANNOT BE UNDONE!',
       type: 'confirm',
     },
   ]);
@@ -68,25 +68,52 @@ const processors = [
         }
       }
 
-      if (noActionRefs.length + keepRefs.length) {
-        console.log('Branches to keep: ');
-        noActionRefs.forEach(ref => console.log(` - ${ref} (no action specified)`));
-        keepRefs.forEach(ref => console.log(` - ${ref} (KEEP)`));
+      console.log(`\n\nrepository path: ${repositoryPath}`);
+      console.log(`remote: ${meta.remote}`);
+      console.log(`url: ${meta.url}`);
+      if (keepRefs.length) {
+        console.log(`${keepRefs.length} branches marked to keep`);
       }
+      if (noActionRefs.length) {
+        console.log(`${noActionRefs.length} branches with no action specified`);
+      }
+      if (deleteRefs.length) {
+        console.log(`${deleteRefs.length} branches marked for removal`);
+      }
+
       if (!deleteRefs.length) {
-        console.log('\nNo branches to delete. Bye!');
+        console.log('\n\nnothing to do here. Bye!');
+        return false;
       }
 
-      console.log('\nBranches to delete: ');
-      deleteRefs.forEach(ref => console.log(` - ${ref} (DELETE)`));
+      const deleteBranches = deleteRefs.map(ref =>
+        branches.remotes.find(remoteBranch => remoteBranch.name === ref),
+      );
+      const goneBranches = [];
+      for (let i = deleteBranches.length - 1; i >= 0; i--) {
+        if (!deleteBranches[i]) {
+          goneBranches.push(deleteRefs[i]);
+          deleteBranches.splice(i, 1);
+        }
+      }
 
-      console.log(`\n Are you sure you want to delete ${deleteRefs.length} branches on remote?`);
+      if (goneBranches.length) {
+        console.log(`\nthe following branches in the sheet are no longer found on ${meta.remote}:`);
+        goneBranches.forEach(ref => console.log(` - ${ref}`));
+        console.log('these branches will be ignored\n');
+      }
+
+      if (!deleteBranches.length) {
+        console.log('\n\nnothing to do here. Bye!');
+        return false;
+      }
+
+      console.log(`\nthe following branches will be deleted on ${meta.remote}:`);
+      deleteBranches.forEach(branch => console.log(` - ${branch.shortName}`));
 
       if (await promptConfirmRemoveBranches()) {
         // eslint-disable-next-line no-restricted-syntax
-        for (const ref of deleteRefs) {
-          const branch = branches.remotes.find(remoteBranch => remoteBranch.name === ref);
-
+        for (const branch of deleteBranches) {
           if (!branch) {
             console.warn(`Could not find branch: ${branch}`);
           } else {
@@ -95,6 +122,8 @@ const processors = [
           }
         }
       }
+
+      return false;
     },
   },
 ];

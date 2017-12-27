@@ -3,7 +3,6 @@ import { authenticate, findSheetId } from './sheetsApi';
 import processSheet from './processSheet';
 
 async function findSheet(argv) {
-  const repositoryPath = path.resolve(argv.path);
   console.log('\n\nWelcome back!\n\n');
 
   const authenticated = await authenticate();
