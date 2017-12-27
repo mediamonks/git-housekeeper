@@ -233,13 +233,23 @@ export async function getBranches() {
   };
 }
 
-export async function deleteBranch(branchRef, dryRun) {
-  const command = `git branch -d ${branchRef.shorthand()}`;
+export async function deleteBranch(branchRef, dryRun, remote = false) {
+  const remoteBranchName = remote
+    ? branchRef.name().replace(`refs/remotes/${targetRemote.name()}/`, 'refs/heads/')
+    : null;
+
+  const command = remote
+    ? `git push ${targetRemote.name()} :${remoteBranchName}`
+    : `git branch -d ${branchRef.shorthand()}`;
   if (dryRun) {
     console.log(`[dry run] ${command}`);
   } else {
     console.log(command);
-    await branchRef.delete();
+    if (remote) {
+      await targetRemote.push(`:${remoteBranchName}`, gitOpts.fetchOpts);
+    } else {
+      await branchRef.delete();
+    }
   }
 }
 

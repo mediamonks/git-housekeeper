@@ -104,7 +104,7 @@ const processors = [
       }
 
       if (!deleteBranches.length) {
-        console.log('\n\nnothing to do here. Bye!');
+        console.log('nothing to do here. Bye!');
         return false;
       }
 
@@ -118,7 +118,7 @@ const processors = [
             console.warn(`Could not find branch: ${branch}`);
           } else {
             // eslint-disable-next-line no-await-in-loop
-            await deleteBranch(branch.ref, argv.d);
+            await deleteBranch(branch.ref, argv.d, true);
           }
         }
       }
