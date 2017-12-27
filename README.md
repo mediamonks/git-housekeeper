@@ -18,8 +18,8 @@ in the action column of each row. The row will turn red or green depending on th
 confirmation) batch delete all those branches.
 
 #### Interactive mode
-If you would rather not use Google Sheets and clean up all the branches by yourself, you can run review in interactive mode. Select
-"ask me which branches I would like to keep" from the menu to start.
+If you would rather not use Google Sheets and review the remote branches by yourself, you can run in interactive mode. Select
+"ask me which branches I would like to keep" from the menu.
 
 ### Review tracking branches gone on remote
 Sometimes a local branch is tracking a branch on remote, but the remote branch is already gone. This can often happen when the branch
