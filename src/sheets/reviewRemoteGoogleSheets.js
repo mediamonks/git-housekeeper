@@ -84,7 +84,7 @@ function generateBranchRows(branches, branchCommits) {
             return {
               values: [
                 // branch ref name
-                generateHiddenColumn(branch.name),
+                generateHiddenColumn(`${branch.name}:${branch.head.sha()}`),
                 // last commit author
                 {
                   ...generateStringValue(index ? '' : author),
@@ -337,10 +337,7 @@ async function sheetGeneratedMenu(argv, remoteBranches, baseBranch, response) {
         },
         {
           name: 'the sheet has been filled, process it now',
-          value: () =>
-            processSheet(argv, response.spreadsheetId, remoteBranches, baseBranch).then(() => {
-              return processSheet(argv, response.spreadsheetId);
-            }),
+          value: () => processSheet(argv, response.spreadsheetId).then(() => false),
         },
         {
           name: 'exit git-housekeeper and come back to process the sheet later',

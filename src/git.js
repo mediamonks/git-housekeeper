@@ -192,12 +192,15 @@ export async function getBranches() {
 
   return {
     refs,
-    remotes: remotes.map(ref => ({
-      ref,
-      shortName: ref.shorthand().replace(/^.+?\//, ''),
-      name: ref.name(),
-      onTargetRemote: ref.name().startsWith(`refs/remotes/${targetRemote.name()}/`),
-    })),
+    remotes: await Promise.all(
+      remotes.map(async ref => ({
+        ref,
+        shortName: ref.shorthand().replace(/^.+?\//, ''),
+        name: ref.name(),
+        onTargetRemote: ref.name().startsWith(`refs/remotes/${targetRemote.name()}/`),
+        head: await repository.getReferenceCommit(ref),
+      })),
+    ),
     locals: await Promise.all(
       locals.map(async ref => {
         let remoteName = null;
@@ -224,6 +227,7 @@ export async function getBranches() {
           upstreamName,
           name: ref.name(),
           shortName: ref.shorthand(),
+          head: await repository.getReferenceCommit(ref),
           gone:
             upstreamName &&
             !remotes.some(remoteRef => remoteRef.name().endsWith(`${remoteName}/${upstreamName}`)),

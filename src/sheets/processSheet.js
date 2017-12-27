@@ -5,11 +5,11 @@ import { setRemote, fetchRemote, getBranches, openRepository, deleteBranch } fro
 
 const VALIDATE_VERSION_REGEX = /^\d+\.\d+\.\d+$/;
 
-async function promptConfirmRemoveBranches() {
+async function promptConfirmRemoveBranches(dryRun) {
   const { response } = await inquirer.prompt([
     {
       name: 'response',
-      message: 'Are you sure? THIS CANNOT BE UNDONE!',
+      message: `[review remote] Are you sure? ${dryRun ? '(dry run)' : 'THIS CANNOT BE UNDONE!'}`,
       type: 'confirm',
     },
   ]);
@@ -48,9 +48,9 @@ const processors = [
             cols[0].userEnteredValue.stringValue.startsWith(`refs/remotes/${meta.remote}`),
         );
 
-      const noActionRefs = [];
-      const keepRefs = [];
-      const deleteRefs = [];
+      const noActionRows = [];
+      const keepRows = [];
+      const deleteRows = [];
 
       // eslint-disable-next-line no-restricted-syntax
       for (const row of branchRows) {
@@ -58,49 +58,67 @@ const processors = [
         const branchRef = row[0].userEnteredValue.stringValue;
         switch (action) {
           case 'KEEP':
-            keepRefs.push(branchRef);
+            keepRows.push(branchRef);
             break;
           case 'DELETE':
-            deleteRefs.push(branchRef);
+            deleteRows.push(branchRef);
             break;
           default:
-            noActionRefs.push(branchRef);
+            noActionRows.push(branchRef);
         }
       }
 
       console.log(`\n\nrepository path: ${repositoryPath}`);
       console.log(`remote: ${meta.remote}`);
       console.log(`url: ${meta.url}`);
-      if (keepRefs.length) {
-        console.log(`${keepRefs.length} branches marked to keep`);
+      if (keepRows.length) {
+        console.log(`${keepRows.length} branches marked to keep`);
       }
-      if (noActionRefs.length) {
-        console.log(`${noActionRefs.length} branches with no action specified`);
+      if (noActionRows.length) {
+        console.log(`${noActionRows.length} branches with no action specified`);
       }
-      if (deleteRefs.length) {
-        console.log(`${deleteRefs.length} branches marked for removal`);
+      if (deleteRows.length) {
+        console.log(`${deleteRows.length} branches marked for removal`);
       }
 
-      if (!deleteRefs.length) {
+      if (!deleteRows.length) {
         console.log('\n\nnothing to do here. Bye!');
         return false;
       }
 
-      const deleteBranches = deleteRefs.map(ref =>
-        branches.remotes.find(remoteBranch => remoteBranch.name === ref),
-      );
+      const deleteBranches = [];
       const goneBranches = [];
-      for (let i = deleteBranches.length - 1; i >= 0; i--) {
-        if (!deleteBranches[i]) {
-          goneBranches.push(deleteRefs[i]);
-          deleteBranches.splice(i, 1);
-        }
-      }
+      const changedBranches = [];
+
+      await Promise.all(
+        deleteRows.map(async ref => {
+          const [branchRef, headSha] = ref.split(':');
+          const branch = branches.remotes.find(remoteBranch => remoteBranch.name === branchRef);
+          if (branch) {
+            deleteBranches.push(branch);
+
+            if (branch.head.sha() !== headSha) {
+              changedBranches.push(branch);
+            }
+          } else {
+            goneBranches.push(branchRef);
+          }
+        }),
+      );
 
       if (goneBranches.length) {
         console.log(`\nthe following branches in the sheet are no longer found on ${meta.remote}:`);
         goneBranches.forEach(ref => console.log(` - ${ref}`));
         console.log('these branches will be ignored\n');
+      }
+
+      if (changedBranches.length) {
+        console.warn(
+          `\nWARNING: the following branches have changed on remote "${
+            meta.remote
+          }" since the sheet was generated:`,
+        );
+        changedBranches.forEach(branch => console.warn(` - ${branch.shortName}`));
       }
 
       if (!deleteBranches.length) {
@@ -111,7 +129,7 @@ const processors = [
       console.log(`\nthe following branches will be deleted on ${meta.remote}:`);
       deleteBranches.forEach(branch => console.log(` - ${branch.shortName}`));
 
-      if (await promptConfirmRemoveBranches()) {
+      if (await promptConfirmRemoveBranches(argv.d)) {
         // eslint-disable-next-line no-restricted-syntax
         for (const branch of deleteBranches) {
           if (!branch) {

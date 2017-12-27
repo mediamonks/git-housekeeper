@@ -1,4 +1,3 @@
-import path from 'path';
 import { authenticate, findSheetId } from './sheetsApi';
 import processSheet from './processSheet';
 

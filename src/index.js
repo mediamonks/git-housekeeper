@@ -1,6 +1,7 @@
 import yargs from 'yargs';
 import path from 'path';
 import inquirer from 'inquirer';
+import packageJson from '../package.json';
 import { openRepository, fetchRemote, getBranches, selectRemote } from './git';
 import reviewGoneBranches from './reviewGoneBranches';
 import reviewRemoteBranches from './reviewRemoteBranches';
@@ -43,7 +44,7 @@ async function mainMenu(argv) {
 }
 
 async function main(argv) {
-  console.log('\n\nWelcome to git housekeeper! \n\n');
+  console.log(`\n\ngit-housekeeper v${packageJson.version}\n\n`);
   const repositoryPath = path.resolve(argv.path);
   await openRepository(repositoryPath);
   await selectRemote();
@@ -53,6 +54,7 @@ async function main(argv) {
   console.log('\nBye! \n');
 }
 
+// eslint-disable-next-line no-unused-expressions
 yargs
   .command(
     '$0 <path>',
