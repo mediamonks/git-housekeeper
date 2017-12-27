@@ -139,6 +139,9 @@ export async function openRepository(repositoryPath) {
     console.error(`Could not open repository at "${repositoryPath}"`);
     throw e;
   }
+}
+
+export async function selectRemote() {
   const remotes = await Remote.list(repository);
 
   // make sure "origin" is the default option
@@ -167,6 +170,19 @@ export async function openRepository(repositoryPath) {
     ({ remoteName } = answers);
   }
   targetRemote = await Remote.lookup(repository, remoteName);
+}
+
+export async function setRemote(remoteName, remoteUrl) {
+  targetRemote = await Remote.lookup(repository, remoteName);
+
+  if (!targetRemote) {
+    throw new Error(`Could not find remote with name "${remoteName}"`);
+  }
+
+
+  if (targetRemote.url() !== remoteUrl) {
+    throw new Error(`Remote "${remoteName}" does nog match url "${remoteUrl}"`);
+  }
 }
 
 export async function getBranches() {

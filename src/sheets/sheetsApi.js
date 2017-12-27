@@ -16,8 +16,10 @@ let oauth2Client;
 const readFile = promisify(fs.readFile, fs);
 const writeFile = promisify(fs.writeFile, fs);
 const sheets = google.sheets('v4');
+const drive = google.drive('v3');
 const createSpreadsheet = promisify(sheets.spreadsheets.create, sheets.spreadsheets);
 const getSpreadsheet = promisify(sheets.spreadsheets.get, sheets.spreasheets);
+const listFiles = promisify(drive.files.list, drive.files);
 
 async function promptCredentialsPath() {
   const { clientSecretPath } = await inquirer.prompt([
@@ -167,6 +169,43 @@ export async function createSheet(sheetData, title) {
     console.error(e);
     return false;
   }
+}
+
+export async function findSheetId(searchAll = false) {
+  const response = await listFiles({
+    q: searchAll
+      ? "trashed=false and mimeType='application/vnd.google-apps.spreadsheet'"
+      : "name contains 'git-housekeeper' and trashed=false and mimeType='application/vnd.google-apps.spreadsheet'",
+    spaces: 'drive',
+    auth: oauth2Client,
+  });
+
+  let sheetId = null;
+  if (response.files.length) {
+    ({ sheetId } = await inquirer.prompt([
+      {
+        name: 'sheetId',
+        message: 'Please select the Google Sheet you would like to process',
+        type: 'list',
+        choices: [
+          ...response.files.map(({ name, id }) => ({
+            value: id,
+            name,
+          })),
+          {
+            value: null,
+            name: searchAll ? '<exit>' : 'find more files...',
+          },
+        ],
+      },
+    ]));
+  }
+
+  if (!sheetId) {
+    return searchAll ? null : findSheetId(true);
+  }
+
+  return sheetId;
 }
 
 export function getSheetData(spreadsheetId) {

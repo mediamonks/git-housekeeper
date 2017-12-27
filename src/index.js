@@ -1,9 +1,10 @@
 import yargs from 'yargs';
 import path from 'path';
 import inquirer from 'inquirer';
-import { openRepository, fetchRemote, getBranches } from './git';
+import { openRepository, fetchRemote, getBranches, selectRemote } from './git';
 import reviewGoneBranches from './reviewGoneBranches';
 import reviewRemoteBranches from './reviewRemoteBranches';
+import findSheet from './sheets/findSheet';
 
 let branches;
 
@@ -45,6 +46,7 @@ async function main(argv) {
   console.log('\n\nWelcome to git housekeeper! \n\n');
   const repositoryPath = path.resolve(argv.path);
   await openRepository(repositoryPath);
+  await selectRemote();
   await fetchRemote();
   branches = await getBranches();
   await mainMenu(argv);
@@ -81,9 +83,7 @@ yargs
         type: 'string',
       });
     },
-    argv => {
-      console.log(argv.path);
-    },
+    findSheet,
   )
   .help()
   .wrap(yargs.terminalWidth()).argv;
