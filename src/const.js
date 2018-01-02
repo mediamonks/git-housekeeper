@@ -9,6 +9,7 @@ export const GAPI_TOKEN_DIR = `${process.env.HOME ||
 export const GAPI_TOKEN_PATH = `${GAPI_TOKEN_DIR}googleapis-branch-cleanup-${
   packageJson.version
 }.json`;
+export const API_TOKEN_PATH = `${GAPI_TOKEN_DIR}branch-cleanup-${packageJson.version}.json`;
 export const PROCESS_SHEET_COMMAND = 'process-sheet';
 export const DEFAULT_CLIENT_SECRET_PATHS = [
   './google_client_secret.json',
@@ -18,6 +19,7 @@ export const GAPI_SCOPES = [
   'https://www.googleapis.com/auth/spreadsheets',
   'https://www.googleapis.com/auth/drive.metadata.readonly',
 ];
+export const API_ROOT_URL = 'https://git-housekeeper.herokuapp.com/';
 export const COLOR_HIDDEN_COLUMN = {
   red: 0.847,
   green: 0.184,
