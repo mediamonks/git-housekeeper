@@ -123,7 +123,7 @@ async function reviewExternal(
   progressBar.terminate();
 
   const response = await request({
-    uri: `${API_ROOT_URL}sheet`,
+    uri: `${API_ROOT_URL}sheets`,
     method: 'POST',
     json: true,
     body: {

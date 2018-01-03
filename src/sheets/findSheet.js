@@ -92,8 +92,43 @@ async function findSheetLocal(argv) {
   return processSheet(argv, sheetId);
 }
 
-async function findSheetExternal(argv, token) {
-  console.log(token);
+async function findSheetExternal(argv, token, searchAll = false) {
+  const response = await request({
+    uri: `${API_ROOT_URL}sheets`,
+    method: 'GET',
+    json: true,
+    qs: {
+      ...token,
+      searchAll,
+    },
+  });
+
+  let sheetId = null;
+  if (response.files.length) {
+    ({ sheetId } = await inquirer.prompt([
+      {
+        name: 'sheetId',
+        message: 'Please select the Google Sheet you would like to process',
+        type: 'list',
+        choices: [
+          ...response.files.map(({ name, id }) => ({
+            value: id,
+            name,
+          })),
+          {
+            value: null,
+            name: searchAll ? '<exit>' : 'find more files...',
+          },
+        ],
+      },
+    ]));
+  }
+
+  if (!sheetId) {
+    return searchAll ? null : findSheetExternal(argv, token, true);
+  }
+
+  return sheetId;
 }
 
 async function promptExternalApi(argv) {
@@ -144,7 +179,14 @@ async function findSheet(argv) {
     return promptExternalApi(argv);
   }
 
-  return findSheetExternal(argv, externalApiToken);
+  const sheetId = await findSheetExternal(argv, externalApiToken);
+
+  if (!sheetId) {
+    console.log('\n\nBye!\n\n');
+    process.exit();
+  }
+
+  console.log(sheetId);
 }
 
 export default findSheet;
