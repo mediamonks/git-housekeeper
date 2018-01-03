@@ -86,15 +86,13 @@ async function reviewExternal(
     return true;
   }
 
-  const branches = remoteBranches
-    .filter(
-      branch =>
-        !(
-          DEFAULT_BASE_BRANCHES.some(branchName => branch.name.endsWith(branchName)) ||
-          branch.name.endsWith(baseBranch)
-        ),
-    )
-    .slice(0, 8);
+  const branches = remoteBranches.filter(
+    branch =>
+      !(
+        DEFAULT_BASE_BRANCHES.some(branchName => branch.name.endsWith(branchName)) ||
+        branch.name.endsWith(baseBranch)
+      ),
+  );
 
   console.log('reading commits on remote branches...');
 
@@ -113,7 +111,6 @@ async function reviewExternal(
           time: commit.timeMs(),
           ...(includeCommitMessages ? { summary: commit.summary() } : {}),
         })),
-        headSha: branch.head.sha(),
         numAhead: commits.ahead.length,
         numBehind: commits.behind.length,
       };
@@ -122,24 +119,31 @@ async function reviewExternal(
 
   progressBar.terminate();
 
-  const response = await request({
-    uri: `${API_ROOT_URL}sheets`,
-    method: 'POST',
-    json: true,
-    body: {
-      branches: branches.map((branch, index) => ({
-        shortName: branch.shortName,
-        name: branch.name,
-        commits: branchCommits[index],
-      })),
-      ...token,
-      baseBranch,
-      remote: {
-        name: getTargetRemote().name(),
-        url: getTargetRemote().url(),
+  let response;
+  try {
+    response = await request({
+      uri: `${API_ROOT_URL}sheets`,
+      method: 'POST',
+      json: true,
+      body: {
+        branches: branches.map((branch, index) => ({
+          shortName: branch.shortName,
+          name: branch.name,
+          headSha: branch.head.sha(),
+          commits: branchCommits[index],
+        })),
+        ...token,
+        baseBranch,
+        remote: {
+          name: getTargetRemote().name(),
+          url: getTargetRemote().url(),
+        },
       },
-    },
-  });
+    });
+  } catch (e) {
+    console.log('Error creating Google Sheet using external API');
+    process.exit(1);
+  }
   console.log(response);
 
   return includeCommitMessages;
