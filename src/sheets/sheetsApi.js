@@ -5,12 +5,7 @@ import promisify from 'es6-promisify';
 import inquirer from 'inquirer';
 import fs from 'fs';
 import path from 'path';
-import {
-  DEFAULT_CLIENT_SECRET_PATHS,
-  GAPI_SCOPES,
-  GAPI_TOKEN_DIR,
-  GAPI_TOKEN_PATH,
-} from '../const';
+import { DEFAULT_CLIENT_SECRET_PATHS, GAPI_SCOPES, TOKEN_DIR, GAPI_TOKEN_PATH } from '../const';
 
 let oauth2Client;
 const readFile = promisify(fs.readFile, fs);
@@ -79,7 +74,7 @@ async function getCredentials(clientSecretPath = null) {
 
 async function storeToken(token) {
   try {
-    fs.mkdirSync(GAPI_TOKEN_DIR);
+    fs.mkdirSync(TOKEN_DIR);
   } catch (err) {
     if (err.code !== 'EEXIST') {
       throw err;
