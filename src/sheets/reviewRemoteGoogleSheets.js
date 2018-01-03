@@ -1,10 +1,18 @@
 import opn from 'opn';
 import promisify from 'es6-promisify';
 import fs from 'fs';
+import ProgressBar from 'progress';
 import inquirer from 'inquirer';
 import request from 'request-promise-native';
 import { reviewGoogleSheetsLocal } from './reviewRemoteGoogleSheetsLocal';
-import { API_ROOT_URL, TOKEN_DIR, API_TOKEN_PATH } from '../const';
+import {
+  API_ROOT_URL,
+  TOKEN_DIR,
+  API_TOKEN_PATH,
+  DEFAULT_BASE_BRANCHES,
+  NUM_COMMITS_IN_SHEET,
+} from '../const';
+import { getBranchAheadBehind, getTargetRemote } from '../git';
 
 const readFile = promisify(fs.readFile, fs);
 const writeFile = promisify(fs.writeFile, fs);
@@ -73,10 +81,66 @@ async function reviewExternal(
   commitsInBase,
   includeCommitMessages,
 ) {
-  const authenticated = await authenticate();
-  if (!authenticated) {
+  const token = await authenticate();
+  if (!token) {
     return true;
   }
+
+  const branches = remoteBranches
+    .filter(
+      branch =>
+        !(
+          DEFAULT_BASE_BRANCHES.some(branchName => branch.name.endsWith(branchName)) ||
+          branch.name.endsWith(baseBranch)
+        ),
+    )
+    .slice(0, 8);
+
+  console.log('reading commits on remote branches...');
+
+  const shaInBase = commitsInBase.map(commit => commit.sha());
+  const progressBar = new ProgressBar(':bar', { total: branches.length });
+
+  const branchCommits = await Promise.all(
+    branches.map(async branch => {
+      const commits = await getBranchAheadBehind(branch.ref, shaInBase);
+
+      progressBar.tick();
+      return {
+        ahead: commits.ahead.slice(0, NUM_COMMITS_IN_SHEET).map(commit => ({
+          sha: commit.sha().substring(0, 6),
+          author: commit.author().name(),
+          time: commit.timeMs(),
+          ...(includeCommitMessages ? { summary: commit.summary() } : {}),
+        })),
+        headSha: branch.head.sha(),
+        numAhead: commits.ahead.length,
+        numBehind: commits.behind.length,
+      };
+    }),
+  );
+
+  progressBar.terminate();
+
+  const response = await request({
+    uri: `${API_ROOT_URL}sheet`,
+    method: 'POST',
+    json: true,
+    body: {
+      branches: branches.map((branch, index) => ({
+        shortName: branch.shortName,
+        name: branch.name,
+        commits: branchCommits[index],
+      })),
+      ...token,
+      baseBranch,
+      remote: {
+        name: getTargetRemote().name(),
+        url: getTargetRemote().url(),
+      },
+    },
+  });
+  console.log(response);
 
   return includeCommitMessages;
 }
