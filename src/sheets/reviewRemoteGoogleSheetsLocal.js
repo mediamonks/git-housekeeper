@@ -229,7 +229,7 @@ const generateConditionalFormatting = () => [
     ranges: [
       {
         sheetId: 0,
-        startRowIndex: 5,
+        startRowIndex: 4,
         startColumnIndex: 1,
         endColumnIndex: 7,
       },
@@ -252,7 +252,7 @@ const generateConditionalFormatting = () => [
     ranges: [
       {
         sheetId: 0,
-        startRowIndex: 5,
+        startRowIndex: 4,
         startColumnIndex: 1,
         endColumnIndex: 7,
       },
