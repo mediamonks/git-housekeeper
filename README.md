@@ -31,7 +31,14 @@ needed cleans them all up in one batch!
 
 ## Installation
  - Install Node.JS v6.0.0 or higher
- - Install the git-housekeeper package __globally__ by running `npm install -g git-housekeeper`
+ - Install the package using `npm install -g git-housekeeper`
+   > It is recommended to install the git-housekeeper package globally, so you can run it from any directory. However, you can also include it as a dev-dependency in your project.
+   
+### Building from source
+To use the source code instead of installing from NPM:
+ - Clone this repository
+ - Build the project using `npm run build`
+ - Run commands using `node main.js <args>` instead of `git-housekeeper <args>`
 
 ## Usage
 Run one of the commands listed below. Then follow the on-screen instructions
