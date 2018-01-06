@@ -343,7 +343,7 @@ async function sheetGeneratedMenu(argv, remoteBranches, baseBranch, response) {
           name: 'exit git-housekeeper and come back to process the sheet later',
           value: () => {
             console.log(
-              `to complete the review, run the following command:\ngit-housekeeper ${PROCESS_SHEET_COMMAND}`,
+              `to complete the review, run the following command:\ngit-housekeeper ${PROCESS_SHEET_COMMAND} <repository path>`,
             );
           },
         },

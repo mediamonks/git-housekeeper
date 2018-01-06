@@ -286,6 +286,19 @@ async function processSheetExternal(argv, { meta, branches: branchRows }) {
   return false;
 }
 
+export async function getSheetAndProcess(argv, externalApiToken, sheetId) {
+  const response = await request({
+    uri: `${API_ROOT_URL}sheets/${sheetId}`,
+    method: 'GET',
+    json: true,
+    qs: {
+      ...externalApiToken,
+    },
+  });
+
+  return processSheetExternal(argv, response);
+}
+
 async function findSheet(argv) {
   console.log('\n\nWelcome back!\n\n');
 
@@ -302,16 +315,7 @@ async function findSheet(argv) {
     process.exit();
   }
 
-  const response = await request({
-    uri: `${API_ROOT_URL}sheets/${sheetId}`,
-    method: 'GET',
-    json: true,
-    qs: {
-      ...externalApiToken,
-    },
-  });
-
-  return processSheetExternal(argv, response);
+  return getSheetAndProcess(argv, externalApiToken, sheetId);
 }
 
 export default findSheet;

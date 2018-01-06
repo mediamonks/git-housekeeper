@@ -11,8 +11,10 @@ import {
   API_TOKEN_PATH,
   DEFAULT_BASE_BRANCHES,
   NUM_COMMITS_IN_SHEET,
+  PROCESS_SHEET_COMMAND,
 } from '../const';
 import { getBranchAheadBehind, getTargetRemote } from '../git';
+import { getSheetAndProcess } from './findSheet';
 
 const readFile = promisify(fs.readFile, fs);
 const writeFile = promisify(fs.writeFile, fs);
@@ -72,6 +74,40 @@ async function authenticate() {
   await storeToken(token);
 
   return token;
+}
+
+async function sheetGeneratedMenu(argv, externalApiToken, remoteBranches, baseBranch, response) {
+  const { action } = await inquirer.prompt([
+    {
+      name: 'action',
+      message: '[review remote] What would you like to do now?',
+      type: 'list',
+      choices: [
+        {
+          name: 'open the sheet url again',
+          value: () => {
+            opn(response.spreadsheetUrl);
+            return sheetGeneratedMenu(argv, externalApiToken, remoteBranches, baseBranch, response);
+          },
+        },
+        {
+          name: 'the sheet has been filled, process it now',
+          value: () =>
+            getSheetAndProcess(argv, externalApiToken, response.spreadsheetId).then(() => false),
+        },
+        {
+          name: 'exit git-housekeeper and come back to process the sheet later',
+          value: () => {
+            console.log(
+              `to complete the review, run the following command:\ngit-housekeeper ${PROCESS_SHEET_COMMAND} <repository path>`,
+            );
+          },
+        },
+      ],
+    },
+  ]);
+
+  return action();
 }
 
 async function reviewExternal(
@@ -142,11 +178,18 @@ async function reviewExternal(
     });
   } catch (e) {
     console.log('Error creating Google Sheet using external API');
+    console.log(e);
     process.exit(1);
   }
-  console.log(response);
 
-  return includeCommitMessages;
+  console.log('Created google sheet at:');
+  console.log(response.spreadsheetUrl);
+  console.log(
+    'Please fill in the action column of the google sheet and return to git-housekeeper when completed',
+  );
+  opn(response.spreadsheetUrl);
+
+  return sheetGeneratedMenu(argv, token, remoteBranches, baseBranch, response);
 }
 
 async function reviewGoogleSheets(argv, remoteBranches, baseBranch, commitsInBase) {
