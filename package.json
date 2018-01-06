@@ -42,6 +42,8 @@
     "nodegit": "^0.20.3",
     "opn": "^5.1.0",
     "progress": "^2.0.0",
+    "request": "^2.83.0",
+    "request-promise-native": "^1.0.5",
     "yargs": "^10.0.3"
   }
 }

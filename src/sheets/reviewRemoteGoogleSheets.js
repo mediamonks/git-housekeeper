@@ -1,327 +1,82 @@
 import opn from 'opn';
+import promisify from 'es6-promisify';
+import fs from 'fs';
 import ProgressBar from 'progress';
-import moment from 'moment';
 import inquirer from 'inquirer';
-import { flatten, groupBy, uniq } from 'lodash';
-import packageJson from '../../package.json';
+import request from 'request-promise-native';
+import { reviewGoogleSheetsLocal } from './reviewRemoteGoogleSheetsLocal';
 import {
-  COLOR_BORDER_DARK,
-  COLOR_BORDER_LIGHT,
-  COLOR_DELETE,
-  COLOR_KEEP,
+  API_ROOT_URL,
+  TOKEN_DIR,
+  API_TOKEN_PATH,
   DEFAULT_BASE_BRANCHES,
   NUM_COMMITS_IN_SHEET,
   PROCESS_SHEET_COMMAND,
-  SHEET_COL_SIZE,
 } from '../const';
-import { getBranchAheadBehind } from '../git';
-import { authenticate, createSheet } from './sheetsApi';
-import { generateHeadRow, generateTitleRows } from './sheetTitleHead';
-import { generateHiddenColumn, generateNumberValue, generateStringValue } from './sheetUtils';
-import processSheet from './processSheet';
+import { getBranchAheadBehind, getTargetRemote } from '../git';
+import { getSheetAndProcess } from './findSheet';
 
-function processColSpan(rowDataWithSpan, sheetId = 0) {
-  const rowData = [];
-  const merges = [];
+const readFile = promisify(fs.readFile, fs);
+const writeFile = promisify(fs.writeFile, fs);
 
-  for (let rowIndex = 0; rowIndex < rowDataWithSpan.length; rowIndex++) {
-    rowData[rowIndex] = {
-      ...rowDataWithSpan[rowIndex],
-      values: [],
-    };
-    const row = rowDataWithSpan[rowIndex].values;
-    for (let colIndex = 0; colIndex < row.length; colIndex++) {
-      const col = row[colIndex];
-      if (col.span && col.col) {
-        const trueColIndex = rowData[rowIndex].values.length;
-        const colSpan = col.span.cols || 1;
-        merges.push({
-          sheetId,
-          startRowIndex: rowIndex,
-          endRowIndex: rowIndex + (col.span.rows || 1),
-          startColumnIndex: trueColIndex,
-          endColumnIndex: trueColIndex + colSpan,
-        });
-
-        rowData[rowIndex].values.push(col.col);
-        for (let i = 0; i < colSpan - 1; i++) {
-          rowData[rowIndex].values.push({});
-        }
-      } else {
-        rowData[rowIndex].values.push(col);
-      }
+async function storeToken(token) {
+  try {
+    fs.mkdirSync(TOKEN_DIR);
+  } catch (err) {
+    if (err.code !== 'EEXIST') {
+      throw err;
     }
   }
-
-  return { rowData, merges };
+  await writeFile(API_TOKEN_PATH, JSON.stringify(token));
+  console.log(`Token stored to ${API_TOKEN_PATH}`);
+  return token;
 }
 
-function generateBranchRows(branches, branchCommits) {
-  const branchesWithCommits = branches.map((branch, index) => ({
-    ...branch,
-    commits: branchCommits[index],
-  }));
+async function authenticate() {
+  try {
+    const tokenFile = await readFile(API_TOKEN_PATH, { encoding: 'utf8' });
+    return JSON.parse(tokenFile);
+  } catch (e) {
+    // ignore
+  }
 
-  const branchesByAuthor = groupBy(
-    branchesWithCommits,
-    branch => (branch.commits.ahead.length ? branch.commits.ahead[0].author().name() : 'none'),
+  console.log(
+    'Please open the following url in your browser, log in with your Google account\n' +
+      'and copy the code from that page here.',
   );
+  const authUrl = `${API_ROOT_URL}authenticate/connect`;
+  console.log(`\n${authUrl}\n`);
+  await opn(authUrl);
 
-  return flatten(
-    Object.keys(branchesByAuthor)
-      .sort()
-      .map(author => {
-        const authorBranches = branchesByAuthor[author];
-
-        return [
-          ...authorBranches.map((branch, index) => {
-            const lastCommitTime = branch.commits.ahead.length
-              ? moment(branch.commits.ahead[0].timeMs())
-              : null;
-            const date = lastCommitTime ? lastCommitTime.format('YYYY,M,D') : '';
-            const time = lastCommitTime ? lastCommitTime.format('H,m,s') : '';
-
-            return {
-              values: [
-                // branch ref name
-                generateHiddenColumn(`${branch.name}:${branch.head.sha()}`),
-                // last commit author
-                {
-                  ...generateStringValue(index ? '' : author),
-                  userEnteredFormat: {
-                    wrapStrategy: 'CLIP',
-                    textFormat: {
-                      bold: true,
-                    },
-                  },
-                },
-                // branch
-                {
-                  ...generateStringValue(branch.shortName),
-                  userEnteredFormat: {
-                    wrapStrategy: 'CLIP',
-                  },
-                },
-                // authors
-                {
-                  ...generateStringValue(
-                    uniq(branch.commits.ahead.map(c => c.author().name())).join(', '),
-                  ),
-                  userEnteredFormat: {
-                    wrapStrategy: 'CLIP',
-                  },
-                },
-                // last commit date
-                date
-                  ? {
-                      userEnteredValue: {
-                        formulaValue: `=DATE(${date})`,
-                      },
-                      userEnteredFormat: {
-                        wrapStrategy: 'CLIP',
-                        numberFormat: {
-                          type: 'DATE',
-                        },
-                        textFormat: {
-                          fontFamily: 'Roboto Mono',
-                          fontSize: 9,
-                        },
-                      },
-                    }
-                  : generateStringValue(''),
-                // last commit time
-                time
-                  ? {
-                      userEnteredValue: {
-                        formulaValue: `=TIME(${time})`,
-                      },
-                      userEnteredFormat: {
-                        wrapStrategy: 'CLIP',
-                        numberFormat: {
-                          type: 'TIME',
-                          pattern: 'hh:mm',
-                        },
-                        textFormat: {
-                          fontFamily: 'Roboto Mono',
-                          fontSize: 9,
-                        },
-                      },
-                    }
-                  : generateStringValue(''),
-                // action
-                {
-                  dataValidation: {
-                    condition: {
-                      type: 'ONE_OF_LIST',
-                      values: [
-                        { userEnteredValue: '' },
-                        { userEnteredValue: 'KEEP' },
-                        { userEnteredValue: 'DELETE' },
-                      ],
-                    },
-                    strict: true,
-                    showCustomUi: true,
-                  },
-                },
-                // behind
-                {
-                  ...generateNumberValue(branch.commits.behind.length),
-                  userEnteredFormat: {
-                    borders: {
-                      left: {
-                        style: 'SOLID',
-                        color: COLOR_BORDER_DARK,
-                      },
-                    },
-                  },
-                },
-                // ahead
-                {
-                  ...generateNumberValue(branch.commits.ahead.length),
-                  userEnteredFormat: {
-                    horizontalAlignment: 'LEFT',
-                    borders: {
-                      right: {
-                        style: 'SOLID',
-                        color: COLOR_BORDER_LIGHT,
-                      },
-                    },
-                  },
-                },
-                // commits
-                ...branch.commits.ahead.slice(0, NUM_COMMITS_IN_SHEET).map(commit => ({
-                  userEnteredValue: {
-                    stringValue: `${commit.sha().substring(0, 6)} ${commit.summary()}`,
-                  },
-                  userEnteredFormat: {
-                    wrapStrategy: 'CLIP',
-                    padding: {
-                      top: 0,
-                      right: 0,
-                      bottom: 0,
-                      left: 12,
-                    },
-                    textFormat: {
-                      fontFamily: 'Roboto Mono',
-                      fontSize: 9,
-                    },
-                  },
-                })),
-                ...(branch.commits.ahead.length > NUM_COMMITS_IN_SHEET
-                  ? [
-                      generateStringValue(
-                        `(${branch.commits.ahead.length - NUM_COMMITS_IN_SHEET} more)`,
-                      ),
-                    ]
-                  : []),
-              ],
-            };
-          }),
-          // spacer row
-          { values: [] },
-        ];
-      }),
-  );
-}
-
-const generateConditionalFormatting = () => [
-  {
-    ranges: [
-      {
-        sheetId: 0,
-        startRowIndex: 5,
-        startColumnIndex: 1,
-        endColumnIndex: 7,
-      },
-    ],
-    booleanRule: {
-      condition: {
-        type: 'CUSTOM_FORMULA',
-        values: [
-          {
-            userEnteredValue: '=EQ(INDIRECT("RC7",false), "KEEP")',
-          },
-        ],
-      },
-      format: {
-        backgroundColor: COLOR_KEEP,
-      },
+  const { code } = await inquirer.prompt([
+    {
+      name: 'code',
+      message: '[review remote] Please enter the code retrieved by logging in here',
     },
-  },
-  {
-    ranges: [
-      {
-        sheetId: 0,
-        startRowIndex: 5,
-        startColumnIndex: 1,
-        endColumnIndex: 7,
-      },
-    ],
-    booleanRule: {
-      condition: {
-        type: 'CUSTOM_FORMULA',
-        values: [
-          {
-            userEnteredValue: '=EQ(INDIRECT("RC7",false), "DELETE")',
-          },
-        ],
-      },
-      format: {
-        backgroundColor: COLOR_DELETE,
-      },
-    },
-  },
-];
-
-function generateSheetData(branches, branchCommits, baseBranch) {
-  const { merges, rowData } = processColSpan([
-    ...generateTitleRows(baseBranch),
-    generateHeadRow(baseBranch),
-    ...generateBranchRows(branches, branchCommits),
   ]);
-  const { HIDDEN, S, M, L } = SHEET_COL_SIZE;
 
-  return {
-    properties: {
-      sheetId: 0,
-      title: 'branches',
-      gridProperties: {
-        frozenRowCount: 4,
+  let token;
+
+  try {
+    token = await request({
+      uri: `${API_ROOT_URL}authenticate/token`,
+      json: true,
+      method: 'POST',
+      body: {
+        code,
       },
-    },
-    data: {
-      startRow: 0,
-      startColumn: 0,
-      rowData,
-      columnMetadata: [
-        // hidden
-        { pixelSize: HIDDEN },
-        // last commit author
-        { pixelSize: M },
-        // branch
-        { pixelSize: L },
-        // authors
-        { pixelSize: L },
-        // last commit date
-        { pixelSize: S + 20 },
-        // last commit time
-        { pixelSize: S - 20 },
-        // action
-        { pixelSize: M },
-        // behind
-        { pixelSize: S },
-        // ahead
-        { pixelSize: S },
-        // commits
-        ...new Array(NUM_COMMITS_IN_SHEET).fill({ pixelSize: S }),
-      ],
-    },
-    merges,
-    conditionalFormats: generateConditionalFormatting(),
-  };
+    });
+  } catch (e) {
+    console.log('\nCould not retrieve access token. Please try again.\n\n');
+    return authenticate();
+  }
+
+  await storeToken(token);
+
+  return token;
 }
 
-async function sheetGeneratedMenu(argv, remoteBranches, baseBranch, response) {
+async function sheetGeneratedMenu(argv, externalApiToken, remoteBranches, baseBranch, response) {
   const { action } = await inquirer.prompt([
     {
       name: 'action',
@@ -332,18 +87,19 @@ async function sheetGeneratedMenu(argv, remoteBranches, baseBranch, response) {
           name: 'open the sheet url again',
           value: () => {
             opn(response.spreadsheetUrl);
-            return sheetGeneratedMenu(argv, remoteBranches, baseBranch, response);
+            return sheetGeneratedMenu(argv, externalApiToken, remoteBranches, baseBranch, response);
           },
         },
         {
           name: 'the sheet has been filled, process it now',
-          value: () => processSheet(argv, response.spreadsheetId).then(() => false),
+          value: () =>
+            getSheetAndProcess(argv, externalApiToken, response.spreadsheetId).then(() => false),
         },
         {
           name: 'exit git-housekeeper and come back to process the sheet later',
           value: () => {
             console.log(
-              `to complete the review, run the following command:\ngit-housekeeper ${PROCESS_SHEET_COMMAND}`,
+              `to complete the review, run the following command:\ngit-housekeeper ${PROCESS_SHEET_COMMAND} <repository path>`,
             );
           },
         },
@@ -354,9 +110,15 @@ async function sheetGeneratedMenu(argv, remoteBranches, baseBranch, response) {
   return action();
 }
 
-async function reviewGoogleSheets(argv, remoteBranches, baseBranch, commitsInBase) {
-  const authenticated = await authenticate();
-  if (!authenticated) {
+async function reviewExternal(
+  argv,
+  remoteBranches,
+  baseBranch,
+  commitsInBase,
+  includeCommitMessages,
+) {
+  const token = await authenticate();
+  if (!token) {
     return true;
   }
 
@@ -378,19 +140,48 @@ async function reviewGoogleSheets(argv, remoteBranches, baseBranch, commitsInBas
       const commits = await getBranchAheadBehind(branch.ref, shaInBase);
 
       progressBar.tick();
-      return commits;
+      return {
+        ahead: commits.ahead.slice(0, NUM_COMMITS_IN_SHEET).map(commit => ({
+          sha: commit.sha().substring(0, 6),
+          author: commit.author().name(),
+          time: commit.timeMs(),
+          ...(includeCommitMessages ? { summary: commit.summary() } : {}),
+        })),
+        numAhead: commits.ahead.length,
+        numBehind: commits.behind.length,
+      };
     }),
   );
 
   progressBar.terminate();
-  const sheetData = generateSheetData(branches, branchCommits, baseBranch);
-  const response = await createSheet(
-    sheetData,
-    `${packageJson.name} ${moment().format('MM/DD/YYYY HH:MM')}`,
-  );
-  if (!response) {
-    return true;
+
+  let response;
+  try {
+    response = await request({
+      uri: `${API_ROOT_URL}sheets`,
+      method: 'POST',
+      json: true,
+      body: {
+        branches: branches.map((branch, index) => ({
+          shortName: branch.shortName,
+          name: branch.name,
+          headSha: branch.head.sha(),
+          commits: branchCommits[index],
+        })),
+        ...token,
+        baseBranch,
+        remote: {
+          name: getTargetRemote().name(),
+          url: getTargetRemote().url(),
+        },
+      },
+    });
+  } catch (e) {
+    console.log('Error creating Google Sheet using external API');
+    console.log(e);
+    process.exit(1);
   }
+
   console.log('Created google sheet at:');
   console.log(response.spreadsheetUrl);
   console.log(
@@ -398,7 +189,50 @@ async function reviewGoogleSheets(argv, remoteBranches, baseBranch, commitsInBas
   );
   opn(response.spreadsheetUrl);
 
-  return sheetGeneratedMenu(argv, remoteBranches, baseBranch, response);
+  return sheetGeneratedMenu(argv, token, remoteBranches, baseBranch, response);
+}
+
+async function reviewGoogleSheets(argv, remoteBranches, baseBranch, commitsInBase) {
+  console.log('\n---- IMPORTANT ----\n');
+
+  console.log(
+    'In order to easily generate Google Sheets, git-housekeeper hosts an API that\n' +
+      'calls the Google API with the meta information of the branches in your repository.\n' +
+      'Branch names, author names, remote urls and commit messages and dates will be sent to this \n' +
+      'API. This data will be used solely for generating the Google Sheet and will not be\n' +
+      'stored on our servers.',
+  );
+  console.log(
+    'If you would rather not share repository information with our API, you have the\n' +
+      'option to use to the Google API directly. Please consult the README for more information.',
+  );
+
+  console.log('\n------------------\n');
+
+  const { action } = await inquirer.prompt([
+    {
+      name: 'action',
+      message: '[review remote] Would you like to use the API?',
+      type: 'list',
+      choices: [
+        {
+          name: 'yes (recommended)',
+          value: () => reviewExternal(argv, remoteBranches, baseBranch, commitsInBase, true),
+        },
+        {
+          name: 'yes, but exclude commit messages',
+          value: () => reviewExternal(argv, remoteBranches, baseBranch, commitsInBase, false),
+        },
+        {
+          name:
+            "no, I'd rather use the Google API directly (requires setting up an OAuth client ID)",
+          value: () => reviewGoogleSheetsLocal(argv, remoteBranches, baseBranch, commitsInBase),
+        },
+      ],
+    },
+  ]);
+
+  return action();
 }
 
 export default reviewGoogleSheets;
