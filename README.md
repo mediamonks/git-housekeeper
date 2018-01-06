@@ -20,6 +20,8 @@ in the action column of each row. The row will turn red or green depending on th
 3. Return to Git Housekeeper to process the sheet. It will list all the branches that have been marked with `DELETE`, and (after your
 confirmation) batch delete all those branches.
 
+![Example Google Sheet](docs/sheet_screenshot.JPG?raw=true "Example Google Sheet")
+
 #### Interactive mode
 If you would rather not use Google Sheets and review the remote branches by yourself, you can run in interactive mode. Select
 "ask me which branches I would like to keep" from the menu.
