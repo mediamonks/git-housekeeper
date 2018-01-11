@@ -6,7 +6,9 @@
   "bin": "main.js",
   "scripts": {
     "build": "babel src -d lib",
+    "clean": "shx rm -rf lib",
     "lint": "eslint src --ext .js --cache",
+    "prepublish": "npm run clean && npm run build",
     "prettify": "prettier --write \"src/**/*.{js,json}\""
   },
   "repository": {
@@ -30,7 +32,8 @@
     "eslint-config-prettier": "^2.9.0",
     "eslint-plugin-import": "^2.8.0",
     "eslint-plugin-prettier": "^2.3.1",
-    "prettier": "^1.9.2"
+    "prettier": "^1.9.2",
+    "shx": "^0.2.2"
   },
   "dependencies": {
     "es6-promisify": "^5.0.0",
