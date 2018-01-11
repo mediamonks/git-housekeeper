@@ -1,7 +1,8 @@
 import moment from 'moment';
 import inquirer from 'inquirer';
-import { DEFAULT_BASE_BRANCHES, COMMITS_PAGE_SIZE } from './const';
-import { deleteBranch, getBranchAheadBehind } from './git';
+import { getAllCommitsInBranch, getBranchAheadBehind, getBranches } from '../git/branches';
+import { getReferenceFromTargetRemote, removeReference } from '../git/remote';
+import { COMMITS_PAGE_SIZE, DEFAULT_BASE_BRANCHES } from '../const';
 
 const ACTION_EXIT = 0;
 const ACTION_SHOW_MORE = 1;
@@ -66,8 +67,10 @@ async function reviewBranch(branch, baseBranchName, commitsInBase) {
   return logCommitsAndPrompt(branchCommits);
 }
 
-async function reviewRemoteInteractive(argv, remoteBranches, baseBranch, commitsInBase) {
-  const branches = remoteBranches.filter(
+async function reviewRemoteInteractive(baseBranch) {
+  const { remotes: allRemotes } = await getBranches();
+  const commitsInBase = await getAllCommitsInBranch(await getReferenceFromTargetRemote(baseBranch));
+  const branchesToReview = allRemotes.filter(
     branch =>
       !(
         DEFAULT_BASE_BRANCHES.some(branchName => branch.name.endsWith(branchName)) ||
@@ -75,9 +78,9 @@ async function reviewRemoteInteractive(argv, remoteBranches, baseBranch, commits
       ),
   );
 
-  for (let i = 0; i < branches.length; i++) {
-    const branch = branches[i];
-    console.log(`\n\n[${i + 1}/${branches.length}] reviewing branch "${branch.shortName}"`);
+  for (let i = 0; i < branchesToReview.length; i++) {
+    const branch = branchesToReview[i];
+    console.log(`\n\n[${i + 1}/${branchesToReview.length}] reviewing branch "${branch.shortName}"`);
     // eslint-disable-next-line no-await-in-loop
     const action = await reviewBranch(branch, baseBranch, commitsInBase);
 
@@ -86,7 +89,7 @@ async function reviewRemoteInteractive(argv, remoteBranches, baseBranch, commits
         return false;
       case ACTION_DELETE:
         // eslint-disable-next-line no-await-in-loop
-        await deleteBranch(branch.ref, argv.d, true);
+        await removeReference(branch.ref);
         break;
       case ACTION_KEEP:
         break;

@@ -1,8 +1,13 @@
 import inquirer from 'inquirer';
-import { deleteBranch, getTargetRemote } from './git';
+import { deleteBranch, getBranches } from '../git/branches';
+import { getTargetRemote } from '../git/remote';
+import { getConfig } from '../args/config';
 
-async function reviewGoneBranches(argv, goneBranches) {
-  const remoteName = getTargetRemote().name();
+async function reviewGoneBranches() {
+  const branches = await getBranches();
+  const config = getConfig();
+  const goneBranches = branches.locals.filter(branch => branch.gone);
+  const remoteName = (await getTargetRemote()).name();
   if (!goneBranches.length) {
     console.log('All tracking branches have been found on remote. Returning to main menu...\n');
     return true;
@@ -19,13 +24,13 @@ async function reviewGoneBranches(argv, goneBranches) {
       name: 'shouldDelete',
       type: 'confirm',
       message: `[review gone] would you like to delete these local branches? ${
-        argv.d ? '(dry run)' : ''
+        config.d ? '(dry run)' : ''
       }`,
     },
   ]);
 
   if (shouldDelete) {
-    await Promise.all(goneBranches.map(branch => deleteBranch(branch.ref, argv.d)));
+    await Promise.all(goneBranches.map(branch => deleteBranch(branch.ref)));
     return false;
   }
 

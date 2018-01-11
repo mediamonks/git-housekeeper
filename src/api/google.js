@@ -1,11 +1,16 @@
 import opn from 'opn';
-import google from 'googleapis';
 import GoogleAuth from 'google-auth-library';
 import promisify from 'es6-promisify';
+import google from 'googleapis';
 import inquirer from 'inquirer';
+import moment from 'moment';
 import fs from 'fs';
 import path from 'path';
+import packageJson from '../../package.json';
 import { DEFAULT_CLIENT_SECRET_PATHS, GAPI_SCOPES, TOKEN_DIR, GAPI_TOKEN_PATH } from '../const';
+import generateSheetData from '../sheets/generateSheetData';
+import { getProcessor, VALIDATE_VERSION_REGEX } from '../sheets/sheetProcessors';
+import sheetResultMenu from '../flows/sheetResultMenu';
 
 let oauth2Client;
 const readFile = promisify(fs.readFile, fs);
@@ -147,13 +152,15 @@ export async function authenticate() {
   return true;
 }
 
-export async function createSheet(sheetData, title) {
+export async function createSheet({ branches, baseBranch, remote }) {
+  const sheetData = generateSheetData({ branches, baseBranch, remote });
+
   let response;
   try {
     response = await createSpreadsheet({
       resource: {
         properties: {
-          title,
+          title: `${packageJson.name} ${moment().format('MM/DD/YYYY HH:MM')}`,
         },
         sheets: [sheetData],
       },
@@ -166,7 +173,7 @@ export async function createSheet(sheetData, title) {
   }
 }
 
-export async function findSheetId(searchAll = false) {
+export async function findSheet(searchAll = false) {
   const response = await listFiles({
     q: searchAll
       ? "trashed=false and mimeType='application/vnd.google-apps.spreadsheet'"
@@ -197,16 +204,27 @@ export async function findSheetId(searchAll = false) {
   }
 
   if (!sheetId) {
-    return searchAll ? null : findSheetId(true);
+    return searchAll ? null : findSheet(true);
   }
 
   return sheetId;
 }
 
-export function getSheetData(spreadsheetId) {
-  return getSpreadsheet({
+export async function processSheet(spreadsheetId) {
+  console.log(`getting data from sheet ${spreadsheetId}`);
+  const response = await getSpreadsheet({
     spreadsheetId,
     includeGridData: true,
     auth: oauth2Client,
   });
+
+  const sheetData = response.sheets[0].data[0].rowData;
+  const sheetVersion = sheetData[0].values[0].userEnteredValue.stringValue;
+  if (!sheetVersion.match(VALIDATE_VERSION_REGEX)) {
+    throw new Error(`Value "${sheetVersion}" at [0,0] in sheet does not match expected pattern`);
+  }
+
+  const processor = getProcessor(sheetVersion);
+  const result = processor.process(sheetData);
+  return sheetResultMenu(result);
 }

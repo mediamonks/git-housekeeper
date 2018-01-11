@@ -1,5 +1,41 @@
 import { COLOR_BORDER_DARK, COLOR_HIDDEN_COLUMN } from '../const';
 
+export function processColSpan(rowDataWithSpan, sheetId = 0) {
+  const rowData = [];
+  const merges = [];
+
+  for (let rowIndex = 0; rowIndex < rowDataWithSpan.length; rowIndex++) {
+    rowData[rowIndex] = {
+      ...rowDataWithSpan[rowIndex],
+      values: [],
+    };
+    const row = rowDataWithSpan[rowIndex].values;
+    for (let colIndex = 0; colIndex < row.length; colIndex++) {
+      const col = row[colIndex];
+      if (col.span && col.col) {
+        const trueColIndex = rowData[rowIndex].values.length;
+        const colSpan = col.span.cols || 1;
+        merges.push({
+          sheetId,
+          startRowIndex: rowIndex,
+          endRowIndex: rowIndex + (col.span.rows || 1),
+          startColumnIndex: trueColIndex,
+          endColumnIndex: trueColIndex + colSpan,
+        });
+
+        rowData[rowIndex].values.push(col.col);
+        for (let i = 0; i < colSpan - 1; i++) {
+          rowData[rowIndex].values.push({});
+        }
+      } else {
+        rowData[rowIndex].values.push(col);
+      }
+    }
+  }
+
+  return { rowData, merges };
+}
+
 export const generateStringValue = stringValue => ({
   userEnteredValue: { stringValue },
 });

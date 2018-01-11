@@ -1,9 +1,8 @@
-import { getTargetRemote } from '../git';
 import packageJson from '../../package.json';
-import { generateHiddenColumn, generateStringValue, generateTitleColumn } from './sheetUtils';
 import { COLOR_BORDER_DARK, COLOR_BORDER_LIGHT } from '../const';
+import { generateHiddenColumn, generateStringValue, generateTitleColumn } from './sheetUtils';
 
-export const generateTitleRows = baseBranch => [
+const generateTitleRows = (baseBranch, remote) => [
   {
     values: [
       generateHiddenColumn(packageJson.version),
@@ -52,7 +51,7 @@ export const generateTitleRows = baseBranch => [
   },
   {
     values: [
-      generateHiddenColumn(getTargetRemote().name()),
+      generateHiddenColumn(remote.name),
       {},
       {},
       {
@@ -75,7 +74,7 @@ export const generateTitleRows = baseBranch => [
   },
   {
     values: [
-      generateHiddenColumn(getTargetRemote().url()),
+      generateHiddenColumn(remote.url),
       {},
       {},
       {
@@ -102,52 +101,4 @@ export const generateTitleRows = baseBranch => [
   },
 ];
 
-export const generateHeadColumn = (content, customFormat) => ({
-  ...generateStringValue(content),
-  userEnteredFormat: {
-    horizontalAlignment: 'CENTER',
-    wrapStrategy: 'WRAP',
-    textFormat: {
-      bold: true,
-    },
-    ...customFormat,
-  },
-});
-
-export const generateHeadRow = baseBranch => ({
-  values: [
-    generateHiddenColumn(baseBranch),
-    generateHeadColumn('last commit author'),
-    generateHeadColumn('branch'),
-    generateHeadColumn('authors'),
-    {
-      span: { cols: 2 },
-      col: generateHeadColumn('last commit time'),
-    },
-    generateHeadColumn('action'),
-    generateHeadColumn('behind', {
-      borders: {
-        left: {
-          style: 'SOLID',
-          color: COLOR_BORDER_DARK,
-        },
-      },
-    }),
-    generateHeadColumn('ahead', {
-      borders: {
-        right: {
-          style: 'SOLID',
-          color: COLOR_BORDER_LIGHT,
-        },
-      },
-    }),
-    {
-      span: { cols: 2 },
-      col: generateHeadColumn('commits'),
-    },
-    {
-      span: { cols: 4 },
-      col: { ...generateStringValue('select cell for commit summary') },
-    },
-  ],
-});
+export default generateTitleRows;

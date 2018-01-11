@@ -1,10 +1,8 @@
 import inquirer from 'inquirer';
+import { DEFAULT_BASE_BRANCHES, INQUIRER_PAGE_SIZE } from '../const';
+import { getBranches } from '../git/branches';
+import reviewRemoteGoogleSheets from './reviewRemoteGoogleSheets';
 import reviewRemoteInteractive from './reviewRemoteInteractive';
-import reviewGoogleSheets from './sheets/reviewRemoteGoogleSheets';
-import { getAllCommitsInBranch, getReferenceFromTargetRemote } from './git';
-import { DEFAULT_BASE_BRANCHES, INQUIRER_PAGE_SIZE } from './const';
-
-let baseBranch = null;
 
 async function selectBaseBranch(remoteBranches) {
   const choices = remoteBranches.map(branch => branch.shortName);
@@ -17,28 +15,31 @@ async function selectBaseBranch(remoteBranches) {
     }
   });
 
-  ({ baseBranch } = await inquirer.prompt([
+  const { baseBranch } = await inquirer.prompt([
     {
       name: 'baseBranch',
       message: `[review remote] Please select a base branch`,
       type: 'list',
       choices,
     },
-  ]));
+  ]);
+
+  return baseBranch;
 }
 
-async function reviewRemoteBranches(argv, remoteBranches, noDefaultBase = false) {
-  baseBranch = noDefaultBase
+async function reviewRemoteBranches(noDefaultBase = false) {
+  const { remotes: remoteBranches } = await getBranches();
+
+  let baseBranch = noDefaultBase
     ? null
     : DEFAULT_BASE_BRANCHES.find(branchName =>
         remoteBranches.some(branch => branch.name.endsWith(branchName)),
       );
 
   if (!baseBranch) {
-    await selectBaseBranch(remoteBranches);
+    baseBranch = await selectBaseBranch(remoteBranches);
   }
-  console.log(`Using "${baseBranch}" as base branch. Getting commits...`);
-  const commitsInBase = await getAllCommitsInBranch(await getReferenceFromTargetRemote(baseBranch));
+  console.log(`Using "${baseBranch}" as base branch`);
 
   const { action } = await inquirer.prompt([
     {
@@ -46,15 +47,15 @@ async function reviewRemoteBranches(argv, remoteBranches, noDefaultBase = false)
       pageSize: INQUIRER_PAGE_SIZE,
       choices: [
         {
-          value: () => reviewGoogleSheets(argv, remoteBranches, baseBranch, commitsInBase),
+          value: () => reviewRemoteGoogleSheets(baseBranch),
           name: 'review branches collaboratively using Google Sheets',
         },
         {
-          value: () => reviewRemoteInteractive(argv, remoteBranches, baseBranch, commitsInBase),
+          value: () => reviewRemoteInteractive(baseBranch),
           name: 'ask me which branches I would like to keep',
         },
         {
-          value: () => reviewRemoteBranches(argv, remoteBranches, true),
+          value: () => reviewRemoteBranches(true),
           name: 'select a different base branch',
         },
         {
