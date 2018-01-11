@@ -116,9 +116,7 @@ export async function attemptFetchRemote(authMethod) {
       if (isWin) {
         console.log('For windows, you can use pageant as an ssh-agent. Download it from:');
         console.log('https://www.chiark.greenend.org.uk/~sgtatham/putty/latest.html');
-        console.log(
-          'Run pageant and with your private key. If your key is not yet in ppk format, ',
-        );
+        console.log('Run pageant and add your private key. If your key is not yet in ppk format, ');
         console.log('you can convert it using puttygen (available on the same page)');
       }
     } else {

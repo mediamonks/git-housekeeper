@@ -35,7 +35,7 @@ needed cleans them all up in one batch!
  - Install Node.JS v6.0.0 or higher
  - Install the package using `npm install -g git-housekeeper`
    > It is recommended to install the git-housekeeper package globally, so you can run it from any directory. However, you can also include it as a dev-dependency in your project.
-   
+
 ### Building from source
 To use the source code instead of installing from NPM:
  - Clone this repository
@@ -55,3 +55,8 @@ Run one of the commands listed below. Then follow the on-screen instructions
  - `-d, --dry-run` Executes a dry run (won't remove any branches) _defaults to `false`_
  - `--version` Show version number
  - `--help` Show help
+
+#### Git authentication
+When trying to connect to an `https` git remote, Git Housekeeper should automatically prompt you to enter a username and password.
+If your remote is setup using `ssh` instead, you need to run an SSH agent in the background with valid keys.
+On Windows, [pageant](https://www.chiark.greenend.org.uk/~sgtatham/putty/latest.html) can be used as an SSH agent.
