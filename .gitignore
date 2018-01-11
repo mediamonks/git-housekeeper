@@ -1,7 +1,10 @@
+# copy to .npmignore
 .idea
-lib
 node_modules
 .eslintcache
 google_client_secret.json
 npm-debug.log
 npm-debug.log.*
+
+# only ignore in git
+lib

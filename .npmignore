@@ -1,0 +1,17 @@
+# .gitignore
+.idea
+node_modules
+.eslintcache
+google_client_secret.json
+npm-debug.log
+npm-debug.log.*
+
+# .npmignore
+.gitignore
+.npmignore
+.eslint*
+.babelrc
+.prettierrc
+.editorconfig
+tests
+docs
