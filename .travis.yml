@@ -1,0 +1,20 @@
+language: node_js
+
+before_install:
+  - if [[ `npm -v` != 3* ]]; then npm i -g npm@3; fi
+
+node_js:
+  - '6'
+
+before_deploy:
+  - npm run clean && npm run build
+
+deploy:
+  - provider: npm
+    email: 'devmonk@mediamonks.com'
+    api_key:
+      secure: 'fLVllebmiGuUjxJoqbYus3AHK2yaf+fDePXLqYiVs5Ozjqe82KV2Zepg1BaWZMDZR45X7vz0b3jLWB40WbxY8v/XcKwgH7Hp7JQI54+hLeezIwqEqo3vbaG6TyONbqTiU392UojoUwZOW1xowO4JI/NIo4X3ism2SHbpdjuBr9I0ruhVLT3lbP/+xcxUAg1hr6y3Qa1QTIUZSjm05bgdUbWOnOkUHSD9kUvG8QZErCHplXxGMrt+Cw7nxlJUAkrwccqlxniJ4kbeKEfHW4+oz6Qs0j4GCqcpf83omG7VijcsWcHYAmhUYg7/axufGjuLkS8RnmRs+zUOx4fBqYOwMbmDKR21duRFrYikuMTZweIjwGe4q8G+P0LZaKtOyqd8RQvdIqulcJqsKklXq2TQ9h+o/LpbgE/kBu/V9GR4IbVZa8ZdrYos8aUI+Rk1dxQQH/nbaOrz6BY3aUDSpvxXNtdDKtoPTw6mcXtB7DuA7HIF2fepPoZSHFtrFPrJ2W7cot7cTzve+HjPkgPyuBtkKnqQCZQA25Ba4JtfoE44nL4k9v3wUYGT2/sY/YVzWfLf4iA55fQ0fxRGS8qCR9r1T6rV5a+Pj2yfkIgTEgk9xaHcWhSBumpps9jYu9/77XIkPkFpv2FyL0AKUMozbnN8KFn22wqVSuhtZ7XdR418IiY='
+    on:
+      tags: true
+      node: '6'
+    skip_cleanup: true
