@@ -1,0 +1,20 @@
+language: node_js
+
+before_install:
+  - if [[ `npm -v` != 3* ]]; then npm i -g npm@3; fi
+
+node_js:
+  - '6'
+
+before_deploy:
+  - run npm run clean && npm run build
+
+deploy:
+  - provider: npm
+    email: 'devmonk@mediamonks.com'
+    api_key:
+      secure: '<<< TOKEN HERE >>>'
+    on:
+      tags: true
+      node: '6'
+    skip_cleanup: true
