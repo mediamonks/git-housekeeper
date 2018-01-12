@@ -57,7 +57,7 @@ export async function authenticate() {
   );
   const authUrl = `${API_ROOT_URL}authenticate/connect`;
   console.log(`\n${authUrl}\n`);
-  await opn(authUrl);
+  await opn(authUrl, { wait: false });
 
   const { code } = await inquirer.prompt([
     {

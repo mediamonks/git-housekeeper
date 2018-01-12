@@ -51,7 +51,7 @@ async function sheetGeneratedMenu(response, api, baseBranch) {
         {
           name: 'open the sheet url again',
           value: () => {
-            opn(response.spreadsheetUrl);
+            opn(response.spreadsheetUrl, { wait: false });
             return sheetGeneratedMenu(response, api, baseBranch);
           },
         },
@@ -137,7 +137,7 @@ async function reviewRemoteGoogleSheets(baseBranch) {
   };
 
   const response = await api.createSheet(formattedBranchData);
-  opn(response.spreadsheetUrl);
+  opn(response.spreadsheetUrl, { wait: false });
   return sheetGeneratedMenu(response, api, baseBranch);
 }
 
