@@ -88,12 +88,13 @@ async function reviewRemoteGoogleSheets(baseBranch) {
 
   const branches = await getBranches();
   const commitsInBase = await getAllCommitsInBranch(await getReferenceFromTargetRemote(baseBranch));
+
   const branchesToReview = branches.remotes.filter(
     branch =>
       !(
         DEFAULT_BASE_BRANCHES.some(branchName => branch.name.endsWith(branchName)) ||
         branch.name.endsWith(baseBranch)
-      ),
+      ) && branch.onTargetRemote,
   );
 
   console.log('reading commits on remote branches...');

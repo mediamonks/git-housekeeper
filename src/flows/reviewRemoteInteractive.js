@@ -75,7 +75,7 @@ async function reviewRemoteInteractive(baseBranch) {
       !(
         DEFAULT_BASE_BRANCHES.some(branchName => branch.name.endsWith(branchName)) ||
         branch.name.endsWith(baseBranch)
-      ),
+      ) && branch.onTargetRemote,
   );
 
   for (let i = 0; i < branchesToReview.length; i++) {
