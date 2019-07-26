@@ -92,9 +92,7 @@ async function sheetResultMenu({ meta, branches: branchRows }) {
 
   if (changedBranches.length) {
     console.warn(
-      `\nWARNING: the following branches have changed on remote "${
-        meta.remote
-      }" since the sheet was generated:`,
+      `\nWARNING: the following branches have changed on remote "${meta.remote}" since the sheet was generated:`,
     );
     changedBranches.forEach(branch => console.warn(` - ${branch.shortName}`));
   }

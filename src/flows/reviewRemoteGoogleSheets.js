@@ -63,9 +63,7 @@ async function sheetGeneratedMenu(response, api, baseBranch) {
           name: 'exit git-housekeeper and come back to process the sheet later',
           value: () => {
             console.log(
-              `to complete the review, run the following command:\n${
-                packageJson.name
-              } ${PROCESS_SHEET_COMMAND} <repository path>`,
+              `to complete the review, run the following command:\n${packageJson.name} ${PROCESS_SHEET_COMMAND} <repository path>`,
             );
           },
         },

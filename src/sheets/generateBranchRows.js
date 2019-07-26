@@ -4,9 +4,8 @@ import { generateHiddenColumn, generateNumberValue, generateStringValue } from '
 import { COLOR_BORDER_DARK, COLOR_BORDER_LIGHT, NUM_COMMITS_IN_SHEET } from '../const';
 
 function generateBranchRows(branches) {
-  const branchesByAuthor = groupBy(
-    branches,
-    branch => (branch.commits.ahead.length ? branch.commits.ahead[0].author : 'none'),
+  const branchesByAuthor = groupBy(branches, branch =>
+    branch.commits.ahead.length ? branch.commits.ahead[0].author : 'none',
   );
 
   return flatten(
