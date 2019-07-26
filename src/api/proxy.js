@@ -1,7 +1,7 @@
 import inquirer from 'inquirer';
 import fs from 'fs';
 import request from 'request-promise-native';
-import promisify from 'es6-promisify';
+import { promisify } from 'es6-promisify';
 import opn from 'opn';
 import sheetResultMenu from '../flows/sheetResultMenu';
 import { API_ROOT_URL, API_TOKEN_PATH, TOKEN_DIR } from '../const';

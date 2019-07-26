@@ -1,7 +1,7 @@
 import opn from 'opn';
 import GoogleAuth from 'google-auth-library';
-import promisify from 'es6-promisify';
-import google from 'googleapis';
+import { promisify } from 'es6-promisify';
+import { google } from 'googleapis';
 import inquirer from 'inquirer';
 import moment from 'moment';
 import fs from 'fs';
