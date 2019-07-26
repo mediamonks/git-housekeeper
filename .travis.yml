@@ -1,7 +1,7 @@
 language: node_js
 
 node_js:
-  - '9'
+  - '10'
 
 before_deploy:
   - npm run clean && npm run build
@@ -13,5 +13,5 @@ deploy:
     on:
       tags: true
       all_branches: true
-      node: '9'
+      node: '10'
     skip_cleanup: true

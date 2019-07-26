@@ -1,6 +1,6 @@
 {
   "name": "git-housekeeper",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "A housekeeping utility to clean up your git repository",
   "main": "main.js",
   "bin": "main.js",
@@ -48,6 +48,6 @@
     "yargs": "^13.3.0"
   },
   "engines": {
-    "node": ">=9.11.2"
+    "node": ">=10.8.0"
   }
 }
